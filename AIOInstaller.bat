@@ -62,18 +62,6 @@ echo.
 echo.
 echo.
 echo ============================
-echo  Installing latest WinGet...
-echo ============================
-powershell -ExecutionPolicy Bypass -File "Installwget.ps1" 1>Nul 2>Nul
-cls
-echo.
-echo.
-echo.
-echo.
-echo.
-echo.
-echo.
-echo ============================
 echo + Winget Install Completed +
 echo ============================
 Timeout /t 2 /nobreak 1>nul 2>nul
