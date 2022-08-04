@@ -1,4 +1,5 @@
 @echo off
+
 :Start
 setlocal DisableDelayedExpansion
 set "batchPath=%~0"
