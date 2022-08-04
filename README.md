@@ -1,7 +1,9 @@
 # PC-Gaming-Redists-AIO
 Handy dandy script to get all redistributables required for PC Gaming + a few other handy tools (like 7zip, Powershell, etc.)
 
-#Instructions: 
-- Either download the main batch file [via this link (Right click and choose Save File As..)](https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat) and run it.
-OR
-- Run this command in powershell: `skrimix line of code goes here`
+## Instructions: 
+- Run the following command in powershell:<br>`skrimix line of code goes here`
+<br><br>**OR**<br><br>
+- Download and run <a href="https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/AIOInstaller.bat" rel="nofollow">AIOInstaller.bat</a>
+
+
