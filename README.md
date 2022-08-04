@@ -6,6 +6,6 @@ Run this command in powershell:
 `skrimix line of code goes here`
 <br>**OR**<br>
 
-<li>Just download and run <a href="https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/AIOInstaller.bat" rel="nofollow">AIOInstaller.bat</a></li>
+Just download and run <a href="https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/AIOInstaller.bat" rel="nofollow">AIOInstaller.bat</a>
 
 
