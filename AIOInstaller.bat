@@ -29,7 +29,7 @@ if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 ::START
 ::::::::::::::::::::::::::::
 set "n=1>NUL 2>NUL"
-title HFP's Redist Installer 3.0
+title PC Gaming Redists AIO Installer
 color 1b
 echo =================================
 echo  PC Gaming Redists AIO Installer
