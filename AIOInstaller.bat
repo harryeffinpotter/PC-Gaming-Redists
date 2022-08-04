@@ -1,8 +1,4 @@
 @echo off
-::::::::::::::::::::::::::::
-::START
-::::::::::::::::::::::::::::
-
 title PC Gaming Redists AIO Installer
 color 1b
 echo =================================
