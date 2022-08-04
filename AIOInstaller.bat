@@ -31,28 +31,12 @@ if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 set "n=1>NUL 2>NUL"
 title HFP's Redist Installer 3.0
 color 1b
-cd /d _bin
-echo ============================
-echo HFP's Redists Installer 3.00
-echo ============================
-echo NET / VC++ / XNA / 7Zip / DX
+echo =================================
+echo  PC Gaming Redists AIO Installer
+echo  By HarryEffinPotter and Skrimix
+echo =================================
+echo NET / VC++ / XNA / 7Zip / DirectX
 echo.
-echo NOTE:
-echo ----------------------------
-echo Unlike older versions, this
-echo version should stay relevant
-echo due to the fact that it just
-echo gets all currently available
-echo .NET / VC++ redristibutables
-echo ----------------------------
-echo.
-echo.
-echo If this still doesn't work -
-echo try DISM/SFC/Delete Antivirus 
-echo /install Windows Updates...
-echo.
-echo -or just reinstall Windows :( 
-pause
 cls
 echo.
 echo.
@@ -61,9 +45,6 @@ echo.
 echo.
 echo.
 echo.
-echo ============================
-echo + Winget Install Completed +
-echo ============================
 Timeout /t 2 /nobreak 1>nul 2>nul
 cls
 echo ============================
