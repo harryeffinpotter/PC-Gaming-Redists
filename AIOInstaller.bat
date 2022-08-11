@@ -50,6 +50,7 @@ echo ============================
 echo.
 Timeout /t 4 /nobreak 1>nul 2>nul
 setlocal ENABLEDELAYEDEXPANSION
+winget search Microsoft.VC --accept-source-agreements >NUL 2>NUL
 FOR /F "tokens=*" %%G IN ('winget search Microsoft.VC') DO (
 set "str=%%G"
 set "str=!str:*Microsoft.=Microsoft.!"
@@ -94,7 +95,7 @@ goto :finished
 
 :GET outer 
 echo Installing %1... 2>nul 
-winget install -e --id %1 --accept-package-agreements --accept-source-agreements --force 2>nul 1>nul
+winget install -e --id %1 --accept-package-agreements --force 2>nul 1>nul
 goto :eol
 
 :finished
@@ -112,13 +113,13 @@ echo.
 Timeout /t 2 /nobreak 1>nul 2>nul
 REM Install some other loose ends.
 echo DirectX
-winget install -e --id Microsoft.DirectX --accept-package-agreements --accept-source-agreements --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.DirectX --accept-package-agreements  --force --silent 2>nul 1>nul
 echo XNA Framework Redistributable
-winget install -e --id Microsoft.XNARedist --accept-package-agreements --accept-source-agreements --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.XNARedist --accept-package-agreements --force --silent 2>nul 1>nul
 echo 7zip
-winget install -e --id 7zip.7zip --accept-package-agreements --accept-source-agreements --force --silent 2>nul 1>nul
+winget install -e --id 7zip.7zip --accept-package-agreements --force --silent 2>nul 1>nul
 echo Powershell
-winget install -e --id Microsoft.PowerShell --accept-package-agreements --accept-source-agreements --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.PowerShell --accept-package-agreements --force --silent 2>nul 1>nul
 Timeout /t 2 /nobreak 1>nul 2>nul
 
 cls
