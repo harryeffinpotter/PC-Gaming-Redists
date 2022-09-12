@@ -1,4 +1,4 @@
-## **PC Gaming Redistributables** v1.0
+## **PC Gaming Redistributable Packages AIO Installer**
  - Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly improved upon by the legendary [@skrimix.](https://github.com/skrimix)
 &nbsp;
 
