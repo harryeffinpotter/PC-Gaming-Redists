@@ -82,6 +82,7 @@ set "str=!str:*Microsoft.=Microsoft.!"
 for /f "tokens=1 delims= " %%a in ("!str!") do (
 echo %%a | FIND /I "Microsoft.dotnetUninstallTool" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "Microsoft.DotNet.SDK" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "arm" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "Microsoft.DotNet.HostingBundle" 1>nul 2>Nul  && (set /a skip=1)
 echo %%a | FIND /I "Microsoft." 1>nul 2>Nul && ( 
 if "!skip!" == "0" (
