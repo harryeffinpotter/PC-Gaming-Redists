@@ -15,6 +15,8 @@ Instructions
 [![Github All Releases](https://img.shields.io/github/downloads/harryeffinpotter/PC-Gaming-Redists/total.svg)]()
 
 ![](https://komarev.com/ghpvc/?username=harryeffinpotter)
+
+
 Troubleshooting:
 ----
 If for whatever reason when you try to run the script you get [this error (Click to view)](https://i.imgur.com/TOvxPUq.png), simply [click here to download WinGet.msixbundle](https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/WinGet.msixbundle), run it, and click Update/Install. Then try either option above again.
