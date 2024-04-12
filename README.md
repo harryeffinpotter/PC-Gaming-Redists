@@ -12,9 +12,7 @@ Instructions
     `iwr -useb https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/Install.ps1 | iex`
 
    
-[![Github All Releases](https://img.shields.io/github/downloads/harryeffinpotter/PC-Gaming-Redists/total.svg)]()
-
-![](https://komarev.com/ghpvc/?username=harryeffinpotter)
+[![Github All Releases](https://img.shields.io/github/downloads/harryeffinpotter/PC-Gaming-Redists/total.svg)]()  ![](https://komarev.com/ghpvc/?username=harryeffinpotter) (since 04-12-2024)
 
 
 Troubleshooting:
