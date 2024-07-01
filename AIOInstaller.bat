@@ -96,7 +96,7 @@ goto :finished
 
 :GET outer 
 echo Installing %1... 2>nul 
-winget install -e --id %1 --accept-package-agreements --force 2>nul 1>nul
+winget install -e --id %1 --accept-package-agreements --force --silent 2>nul 1>nul
 goto :eol
 
 :finished
