@@ -84,6 +84,7 @@ echo %%a | FIND /I "Microsoft.dotnetUninstallTool" 1>nul 2>Nul && (set /a skip=1
 echo %%a | FIND /I "Microsoft.DotNet.SDK" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "arm" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "Microsoft.DotNet.HostingBundle" 1>nul 2>Nul  && (set /a skip=1)
+echo %%a | FIND /I "Microsoft.Framework.Developer" 1>nul 2>Nul  && (set /a skip=1)
 echo %%a | FIND /I "Microsoft." 1>nul 2>Nul && ( 
 if "!skip!" == "0" (
 call :GET %%a
