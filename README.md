@@ -4,7 +4,7 @@
 
 
 UPDATED ON SEPTEMBER 16TH 2024:
-- Noticed that on fresh installs the script would only get the couple of extra tools at the end, ignoring the entire purpose of the script, this was due to Windows now including winget with more recent windows builds, but not including the proper sources with winget, not until windows is fully updated, and many of the times when I, and others, are running this script, we are running it after a reformat, and not necessarily after we have all cumulative updates installed. So I added lines that *SHOULD* fix this. If this issue persists for anyone please open an issue. Also wouldn't mind if someone opened an issue just to tell me "Hey this worked on a fresh install again!". Thanks!
+- Noticed that on fresh installs the script would only get the couple of extra tools at the end, ignoring the entire purpose of the script. This was due to Windows now including Winget with more recent windows builds, but not including the proper sources with winget. The proper sources may be included when windows is fully updated(not entirely sure), however most of the time when I, and others, are running this script, we are running it after a reformat, and not necessarily after we have all cumulative updates installed. So I added lines that *SHOULD* fix this. If this issue persists for anyone please open an issue. Also wouldn't mind if someone opened an issue just to tell me "Hey this worked on a fresh install again!". Thanks!
 - Added 2 packages to .net exclusions and 1 package to VC++ exclusions since they were all mismatches.
 - Same code that fixes the fresh install issue mentioned above SHOULD install winget much cleaner for systems without it.
 
