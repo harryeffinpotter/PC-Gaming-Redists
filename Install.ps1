@@ -32,19 +32,25 @@ if (!(Test-CommandExists winget))
 		$item.Delete()
 	}
 }
-
-echo "Updating winget sources..."
-echo ""
-$progressPreference = 'silentlyContinue'
-$latestWingetMsixBundleUri = $(Invoke-RestMethod https://api.github.com/repos/microsoft/winget-cli/releases/latest).assets.browser_download_url | Where-Object {$_.EndsWith(".msixbundle")}
-$latestWingetMsixBundle = $latestWingetMsixBundleUri.Split("/")[-1]
-Write-Information "Downloading winget to artifacts directory..."
-Invoke-WebRequest -Uri $latestWingetMsixBundleUri -OutFile "./$latestWingetMsixBundle"
-Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
-Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
-Add-AppxPackage $latestWingetMsixBundle
-timeout /t 3 /nobreak
-clear
+try
+{
+	echo "Updating winget sources..."
+	echo ""
+	$progressPreference = 'silentlyContinue'
+	$latestWingetMsixBundleUri = $(Invoke-RestMethod https://api.github.com/repos/microsoft/winget-cli/releases/latest).assets.browser_download_url | Where-Object {$_.EndsWith(".msixbundle")}
+	$latestWingetMsixBundle = $latestWingetMsixBundleUri.Split("/")[-1]
+	Write-Information "Downloading winget to artifacts directory..."
+	Invoke-WebRequest -Uri $latestWingetMsixBundleUri -OutFile "./$latestWingetMsixBundle"
+	Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
+	Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
+	Add-AppxPackage $latestWingetMsixBundle
+	timeout /t 3 /nobreak
+	clear
+}
+catch
+{
+	echo "Winget sources already up to date."
+}
 echo "Downloading script..."
 $DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat'
 
