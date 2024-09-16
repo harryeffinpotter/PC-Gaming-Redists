@@ -43,6 +43,8 @@ Invoke-WebRequest -Uri $latestWingetMsixBundleUri -OutFile "./$latestWingetMsixB
 Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
 Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
 Add-AppxPackage $latestWingetMsixBundle
+timeout /t 3 /nobreak
+clear
 echo "Downloading script..."
 $DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat'
 
