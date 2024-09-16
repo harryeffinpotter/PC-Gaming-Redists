@@ -51,7 +51,7 @@ echo.
 Timeout /t 4 /nobreak 1>nul 2>nul
 setlocal ENABLEDELAYEDEXPANSION
 winget search Microsoft.VCRed --accept-source-agreements >NUL 2>NUL
-FOR /F "tokens=*" %%G IN ('winget search Microsoft.VC') DO (
+FOR /F "tokens=*" %%G IN ('winget search Microsoft.VCRed') DO (
 set "str=%%G"
 set "str=!str:*Microsoft.=Microsoft.!"
 for /f "tokens=1 delims= " %%a in ("!str!") do (
