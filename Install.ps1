@@ -34,7 +34,7 @@ if (!(Test-CommandExists winget))
 }
 
 echo "Updating winget sources..."
-echo.
+echo ""
 $progressPreference = 'silentlyContinue'
 $latestWingetMsixBundleUri = $(Invoke-RestMethod https://api.github.com/repos/microsoft/winget-cli/releases/latest).assets.browser_download_url | Where-Object {$_.EndsWith(".msixbundle")}
 $latestWingetMsixBundle = $latestWingetMsixBundleUri.Split("/")[-1]
