@@ -50,7 +50,7 @@ echo ============================
 echo.
 Timeout /t 4 /nobreak 1>nul 2>nul
 setlocal ENABLEDELAYEDEXPANSION
-winget search Microsoft.VC --accept-source-agreements >NUL 2>NUL
+winget search Microsoft.VCRed --accept-source-agreements >NUL 2>NUL
 FOR /F "tokens=*" %%G IN ('winget search Microsoft.VC') DO (
 set "str=%%G"
 set "str=!str:*Microsoft.=Microsoft.!"
