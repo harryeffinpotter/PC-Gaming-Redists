@@ -62,7 +62,7 @@ try
 }
 catch
 {
-	Write-Error $_
+	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
 	Return
 }
 
