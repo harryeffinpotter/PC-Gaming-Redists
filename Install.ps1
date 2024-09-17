@@ -65,10 +65,18 @@ catch
 	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
 	Return
 }
-
+try
+{
 if (Test-Path $FilePath)
 {
 	Start-Process -Verb runAs $FilePath -Wait
 	$item = Get-Item -LiteralPath $FilePath
 	$item.Delete()
 }
+}
+catch
+{
+Start-Process -Verb runAs $FilePath -Wait
+	$item = Get-Item -LiteralPath $FilePath
+	$item.Delete()
+ }
