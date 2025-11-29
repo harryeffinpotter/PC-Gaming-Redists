@@ -273,7 +273,7 @@ catch
 	echo "Winget sources already up to date or update failed."
 }
 echo "Downloading script..."
-$DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat'
+$DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/AIOInstaller.bat'
 
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
