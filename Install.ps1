@@ -9,17 +9,9 @@ Function Test-WingetWorks
 {
 	# Check if winget actually works, not just exists
 	# On fresh Win11 installs it may exist but return garbage (just "-")
-	# So we do an actual search and verify real results come back
 	try {
-		# First check version
-		$version = winget --version 2>&1
-		if ($version -notmatch "^v\d+\.\d+") {
-			return $false
-		}
-
-		# Now do an actual search - this catches "winget runs but returns nothing"
-		$searchResult = winget search Microsoft.VCRedist.2015+.x64 2>&1 | Out-String
-		if ($searchResult -match "Microsoft\.VCRedist") {
+		$version = & winget --version 2>&1
+		if ($version -match "^v\d+\.\d+") {
 			return $true
 		}
 		return $false
@@ -274,30 +266,16 @@ catch
 }
 echo "Downloading script..."
 $DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat'
-
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
-try
-{
-	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
+curl.exe -L -s -o $FilePath $DownloadURL
+
+if (!(Test-Path $FilePath) -or (Get-Item $FilePath).Length -eq 0) {
+	echo "Failed to download AIOInstaller.bat"
+	echo "URL: $DownloadURL"
+	pause
+	exit
 }
-catch
-{
-	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
-	Return
-}
-try
-{
-if (Test-Path $FilePath)
-{
-	Start-Process -Verb runAs $FilePath -Wait
-	$item = Get-Item -LiteralPath $FilePath
-	$item.Delete()
-}
-}
-catch
-{
+
 Start-Process -Verb runAs $FilePath -Wait
-	$item = Get-Item -LiteralPath $FilePath
-	$item.Delete()
- }
+Remove-Item $FilePath -Force -ErrorAction SilentlyContinue
