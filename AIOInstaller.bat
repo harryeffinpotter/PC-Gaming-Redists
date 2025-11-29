@@ -23,6 +23,10 @@ exit /B
 setlocal & pushd .
 cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
+
+REM Disable QuickEdit mode so clicking doesn't pause the script
+powershell -NoProfile -Command "& {$h=Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr GetStdHandle(int h);[DllImport(\"kernel32.dll\")] public static extern bool SetConsoleMode(IntPtr h,int m);' -Name W -PassThru;$s=$h::GetStdHandle(-10);$h::SetConsoleMode($s,0x0080)}" 2>nul
+
 title PC Gaming Redists AIO Installer
 color 1b
 echo =================================
@@ -34,15 +38,45 @@ echo.
 echo Press any key to begin.
 pause > nul
 cls
-cls
 echo.
+echo Checking if WinGet is working...
 echo.
+
+:checkWinget
+REM Test if winget works by running a simple search
+winget search Microsoft.VCRedist.2015+.x64 >"%temp%\winget_test.txt" 2>&1
+findstr /C:"Microsoft.VCRedist" "%temp%\winget_test.txt" >nul 2>nul
+if %errorlevel% NEQ 0 (
+    cls
+    echo ============================================
+    echo   ERROR: WinGet is not working properly!
+    echo ============================================
+    echo.
+    echo WinGet returned no results or is broken.
+    echo This can happen on fresh Windows installs.
+    echo.
+    echo Please install WinGet manually from:
+    echo   https://github.com/microsoft/winget-cli
+    echo.
+    echo Download the latest .msixbundle from Releases
+    echo and install it, then try again.
+    echo.
+    echo ============================================
+    echo.
+    choice /C YN /M "Retry WinGet check"
+    if errorlevel 2 goto :wingetFailed
+    if errorlevel 1 goto :checkWinget
+)
+del "%temp%\winget_test.txt" 2>nul
+goto :wingetOK
+
+:wingetFailed
 echo.
-echo.
-echo.
-echo.
-echo.
-Timeout /t 2 /nobreak 1>nul 2>nul
+echo Cannot continue without working WinGet. Exiting...
+pause
+exit /B
+
+:wingetOK
 cls
 echo ============================
 echo   Installing VC Redists...
@@ -81,10 +115,15 @@ set "str=%%G"
 set "str=!str:*Microsoft.=Microsoft.!"
 for /f "tokens=1 delims= " %%a in ("!str!") do (
 echo %%a | FIND /I "Microsoft.dotnetUninstallTool" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "Microsoft.DotNet.UninstallTool" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "Microsoft.DotNet.SDK" 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "arm" 1>nul 2>Nul && (set /a skip=1)
-echo %%a | FIND /I "Microsoft.DotNet.HostingBundle" 1>nul 2>Nul  && (set /a skip=1)
-echo %%a | FIND /I "Microsoft.Framework.Developer" 1>nul 2>Nul  && (set /a skip=1)
+echo %%a | FIND /I "Microsoft.DotNet.HostingBundle" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "Microsoft.Framework.Developer" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "DeveloperPack" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "Preview" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "RepairTool" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "DotNet.Runtime." 1>nul 2>Nul && (set /a skip=1)
 echo %%a | FIND /I "Microsoft." 1>nul 2>Nul && ( 
 if "!skip!" == "0" (
 call :GET %%a
@@ -95,9 +134,9 @@ call :GET %%a
 endlocal
 goto :finished
 
-:GET outer 
-echo Installing %1... 2>nul 
-winget install -e --id %1 --accept-package-agreements --force --silent 2>nul 1>nul
+:GET outer
+echo Installing %1... 2>nul
+winget install -e --id %1 --accept-package-agreements --accept-source-agreements --force --silent --disable-interactivity 2>nul 1>nul
 goto :eol
 
 :finished
@@ -115,13 +154,13 @@ echo.
 Timeout /t 2 /nobreak 1>nul 2>nul
 REM Install some other loose ends.
 echo DirectX
-winget install -e --id Microsoft.DirectX --accept-package-agreements  --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.DirectX --accept-package-agreements --accept-source-agreements --force --silent --disable-interactivity 2>nul 1>nul
 echo XNA Framework Redistributable
-winget install -e --id Microsoft.XNARedist --accept-package-agreements --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.XNARedist --accept-package-agreements --accept-source-agreements --force --silent --disable-interactivity 2>nul 1>nul
 echo 7zip
-winget install -e --id 7zip.7zip --accept-package-agreements --force --silent 2>nul 1>nul
+winget install -e --id 7zip.7zip --accept-package-agreements --accept-source-agreements --force --silent --disable-interactivity 2>nul 1>nul
 echo Powershell
-winget install -e --id Microsoft.PowerShell --accept-package-agreements --force --silent 2>nul 1>nul
+winget install -e --id Microsoft.PowerShell --accept-package-agreements --accept-source-agreements --force --silent --disable-interactivity 2>nul 1>nul
 Timeout /t 2 /nobreak 1>nul 2>nul
 
 cls
