@@ -1,3 +1,12 @@
+# Log everything to a file
+$LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
+Start-Transcript -Path $LogFile -Force
+
+echo "=== PC Gaming Redists Install Log ==="
+echo "Date: $(Get-Date)"
+echo "======================================="
+echo ""
+
 Function Test-CommandExists
 {
 	Param ($command)
@@ -9,9 +18,17 @@ Function Test-WingetWorks
 {
 	# Check if winget actually works, not just exists
 	# On fresh Win11 installs it may exist but return garbage (just "-")
+	# So we do an actual search and verify real results come back
 	try {
-		$version = & winget --version 2>&1
-		if ($version -match "^v\d+\.\d+") {
+		# First check version
+		$version = winget --version 2>&1
+		if ($version -notmatch "^v\d+\.\d+") {
+			return $false
+		}
+
+		# Now do an actual search - this catches "winget runs but returns nothing"
+		$searchResult = winget search Microsoft.VCRedist.2015+.x64 2>&1 | Out-String
+		if ($searchResult -match "Microsoft\.VCRedist") {
 			return $true
 		}
 		return $false
@@ -159,7 +176,8 @@ Function Install-WingetDependencies
 
 	# STEP 1: Update sources and test
 	Update-WingetSources
-	if (Test-WingetSearch) {
+	# TODO: Remove $false after testing - forces first test to fail
+	if ($false -and (Test-WingetSearch)) {
 		echo "WinGet is working!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
@@ -234,10 +252,11 @@ Function Install-WingetDependencies
 $ErrorActionPreference = 'stop'
 
 # Check if winget exists AND actually works
-if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
+# TODO: Remove "$true -or" after testing - forces dependency install for testing
+if ($true -or !(Test-CommandExists winget) -or !(Test-WingetWorks))
 {
 	echo "WinGet is missing or not working properly..."
-	echo "This is common on fresh installs."
+	echo "This is common on fresh Windows 11 installs."
 	echo ""
 	echo "NOTE: This may need to close Edge, Notepad, MS Store, and other apps to install dependencies."
 	echo ""
@@ -266,16 +285,36 @@ catch
 }
 echo "Downloading script..."
 $DownloadURL = 'https://github.com/harryeffinpotter/PC-Gaming-Redists-AIO/raw/main/AIOInstaller.bat'
+
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
-curl.exe -L -s -o $FilePath $DownloadURL
-
-if (!(Test-Path $FilePath) -or (Get-Item $FilePath).Length -eq 0) {
-	echo "Failed to download AIOInstaller.bat"
-	echo "URL: $DownloadURL"
-	pause
-	exit
+try
+{
+	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
 }
-
+catch
+{
+	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
+	Return
+}
+try
+{
+if (Test-Path $FilePath)
+{
+	Start-Process -Verb runAs $FilePath -Wait
+	$item = Get-Item -LiteralPath $FilePath
+	$item.Delete()
+}
+}
+catch
+{
 Start-Process -Verb runAs $FilePath -Wait
-Remove-Item $FilePath -Force -ErrorAction SilentlyContinue
+	$item = Get-Item -LiteralPath $FilePath
+	$item.Delete()
+ }
+
+Stop-Transcript
+echo ""
+echo "Log saved to: $LogFile"
+echo "If something went wrong, check that file."
+pause
