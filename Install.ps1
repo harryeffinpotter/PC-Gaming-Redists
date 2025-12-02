@@ -2,6 +2,42 @@
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
 
+# PCGR ASCII Art Logo - each letter in pastel colors
+Write-Host ""
+Write-Host "  ██████████ " -ForegroundColor Magenta -NoNewline
+Write-Host "  ████████  " -ForegroundColor Blue -NoNewline
+Write-Host " █████████ " -ForegroundColor Cyan -NoNewline
+Write-Host " █████████ " -ForegroundColor Green
+Write-Host " ░░███░░░███" -ForegroundColor Magenta -NoNewline
+Write-Host "░░███░░░░██ " -ForegroundColor Blue -NoNewline
+Write-Host "███░░░░░███" -ForegroundColor Cyan -NoNewline
+Write-Host "░░███░░░███" -ForegroundColor Green
+Write-Host "  ░███ ░░███" -ForegroundColor Magenta -NoNewline
+Write-Host "░███   ░░░░" -ForegroundColor Blue -NoNewline
+Write-Host "███     ░░░" -ForegroundColor Cyan -NoNewline
+Write-Host " ░███ ░░███ " -ForegroundColor Green
+Write-Host "  ░████████ " -ForegroundColor Magenta -NoNewline
+Write-Host "░███       " -ForegroundColor Blue -NoNewline
+Write-Host "░███       " -ForegroundColor Cyan -NoNewline
+Write-Host " ░████████  " -ForegroundColor Green
+Write-Host "  ░███░░░░  " -ForegroundColor Magenta -NoNewline
+Write-Host "░███       " -ForegroundColor Blue -NoNewline
+Write-Host "░███    ████" -ForegroundColor Cyan -NoNewline
+Write-Host "█ ░███░███   " -ForegroundColor Green
+Write-Host "  ░███      " -ForegroundColor Magenta -NoNewline
+Write-Host "░░███   ░██" -ForegroundColor Blue -NoNewline
+Write-Host "░░███ ░░░███" -ForegroundColor Cyan -NoNewline
+Write-Host " ░███░░███  " -ForegroundColor Green
+Write-Host "  █████     " -ForegroundColor Magenta -NoNewline
+Write-Host " ░░████████" -ForegroundColor Blue -NoNewline
+Write-Host " ░░█████████" -ForegroundColor Cyan -NoNewline
+Write-Host " ████ ░░████" -ForegroundColor Green
+Write-Host " ░░░░░      " -ForegroundColor Magenta -NoNewline
+Write-Host "  ░░░░░░░░░" -ForegroundColor Blue -NoNewline
+Write-Host "  ░░░░░░░░░" -ForegroundColor Cyan -NoNewline
+Write-Host " ░░░░░  ░░░░" -ForegroundColor Green
+Write-Host ""
+
 Function Test-CommandExists
 {
 	Param ($command)
