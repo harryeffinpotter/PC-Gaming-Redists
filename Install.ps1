@@ -2,12 +2,6 @@
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
 
-Write-Host ""
-Write-Host "=================================" -ForegroundColor Cyan
-Write-Host " PC Gaming Redists - Installer" -ForegroundColor Cyan
-Write-Host "=================================" -ForegroundColor Cyan
-Write-Host ""
-
 Function Test-CommandExists
 {
 	Param ($command)
@@ -271,11 +265,9 @@ if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 	}
 }
 
-Write-Host "[1/3] Updating winget sources..." -ForegroundColor Yellow
 $progressPreference = 'silentlyContinue'
 try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { }
 
-Write-Host "[2/3] Downloading installer..." -ForegroundColor Yellow
 $DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
@@ -303,10 +295,10 @@ if (!(Test-Path $FilePath)) {
 	Return
 }
 
-Write-Host "[3/3] Launching installer..." -ForegroundColor Yellow
-Write-Host ""
-Write-Host "A UAC prompt may appear - click Yes to continue." -ForegroundColor Cyan
-Write-Host ""
+Write-Host "Launching " -ForegroundColor Red -NoNewline
+Write-Host "AIO Redists Installer " -ForegroundColor Green -NoNewline
+Write-Host "Window... " -ForegroundColor Blue -NoNewline
+Write-Host "(Be sure to agree to UAC prompt)" -ForegroundColor Yellow
 
 # Disable QuickEdit so clicking doesn't pause the script
 $regPath = "HKCU:\Console"
@@ -317,17 +309,12 @@ Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
 
 try {
 	Start-Process -Verb runAs $FilePath -Wait
-	Write-Host ""
-	Write-Host "Installer finished!" -ForegroundColor Green
 } catch {
 	Write-Host "ERROR launching installer: $_" -ForegroundColor Red
+	pause
 }
 
 # Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value $oldQuickEdit -Type DWord -Force
-
 Stop-Transcript | Out-Null
-Write-Host ""
-Write-Host "Log saved to: $LogFile" -ForegroundColor Gray
-pause
