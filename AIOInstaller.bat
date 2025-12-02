@@ -183,6 +183,8 @@ cls
 
 echo All done. Press any key to exit.
 pause > nul
+color
+exit
 
 :eol
 goto :eof
