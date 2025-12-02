@@ -1,11 +1,12 @@
-# Log everything to a file
+# Log to file silently
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
-Start-Transcript -Path $LogFile -Force
+Start-Transcript -Path $LogFile -Force | Out-Null
 
-echo "=== PC Gaming Redists Install Log ==="
-echo "Date: $(Get-Date)"
-echo "======================================="
-echo ""
+Write-Host ""
+Write-Host "=================================" -ForegroundColor Cyan
+Write-Host " PC Gaming Redists - Installer" -ForegroundColor Cyan
+Write-Host "=================================" -ForegroundColor Cyan
+Write-Host ""
 
 Function Test-CommandExists
 {
@@ -270,64 +271,56 @@ if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 	}
 }
 
-try
-{
-	echo "Updating winget sources..."
-	echo ""
-	$progressPreference = 'silentlyContinue'
-	winget source update --accept-source-agreements 2>&1 | Out-Null
-}
-catch
-{
-	echo "Winget sources already up to date or update failed."
-}
-echo "Downloading script..."
-$DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
+Write-Host "[1/3] Updating winget sources..." -ForegroundColor Yellow
+$progressPreference = 'silentlyContinue'
+try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { }
 
+Write-Host "[2/3] Downloading installer..." -ForegroundColor Yellow
+$DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
-try
-{
-	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
-}
-catch
-{
-	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
+try {
+	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath -ErrorAction Stop
+} catch {
+	Write-Host "ERROR: Failed to download installer!" -ForegroundColor Red
+	Write-Host $_.Exception.Message -ForegroundColor Red
+	Stop-Transcript | Out-Null
+	pause
 	Return
 }
+
+if (!(Test-Path $FilePath)) {
+	Write-Host "ERROR: Download succeeded but file not found!" -ForegroundColor Red
+	Stop-Transcript | Out-Null
+	pause
+	Return
+}
+
+Write-Host "[3/3] Launching installer..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "A UAC prompt may appear - click Yes to continue." -ForegroundColor Cyan
+Write-Host ""
+
 # Disable QuickEdit so clicking doesn't pause the script
 $regPath = "HKCU:\Console"
 $oldQuickEdit = $null
-try {
-	$oldQuickEdit = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit
-} catch { }
+try { $oldQuickEdit = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit } catch { }
 if ($null -eq $oldQuickEdit) { $oldQuickEdit = 1 }
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
 
-echo "Downloaded to: $FilePath"
-echo "File exists: $(Test-Path $FilePath)"
-if (Test-Path $FilePath)
-{
-	echo "Launching installer..."
-	try {
-		# Start in new console so it picks up the registry change
-		Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
-		echo "Installer finished."
-	} catch {
-		echo "ERROR launching installer: $_"
-	}
-	try { Remove-Item $FilePath -Force } catch { }
-}
-else
-{
-	echo "ERROR: Failed to download installer!"
+try {
+	Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
+	Write-Host ""
+	Write-Host "Installer finished!" -ForegroundColor Green
+} catch {
+	Write-Host "ERROR launching installer: $_" -ForegroundColor Red
 }
 
-# Restore original QuickEdit setting
+# Cleanup
+try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value $oldQuickEdit -Type DWord -Force
 
-Stop-Transcript
-echo ""
-echo "Log saved to: $LogFile"
-echo "If something went wrong, check that file."
+Stop-Transcript | Out-Null
+Write-Host ""
+Write-Host "Log saved to: $LogFile" -ForegroundColor Gray
 pause
