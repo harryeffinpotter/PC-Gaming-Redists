@@ -1,0 +1,3 @@
+# Local fallback packages (too large for GitHub, downloaded at runtime anyway)
+*.msixbundle
+*.appx
