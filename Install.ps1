@@ -304,21 +304,23 @@ try {
 if ($null -eq $oldQuickEdit) { $oldQuickEdit = 1 }
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
 
-try
-{
+echo "Downloaded to: $FilePath"
+echo "File exists: $(Test-Path $FilePath)"
 if (Test-Path $FilePath)
 {
-	# Start in new console so it picks up the registry change
-	Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
-	$item = Get-Item -LiteralPath $FilePath
-	$item.Delete()
+	echo "Launching installer..."
+	try {
+		# Start in new console so it picks up the registry change
+		Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
+		echo "Installer finished."
+	} catch {
+		echo "ERROR launching installer: $_"
+	}
+	try { Remove-Item $FilePath -Force } catch { }
 }
-}
-catch
+else
 {
-Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
-	$item = Get-Item -LiteralPath $FilePath
-	$item.Delete()
+	echo "ERROR: Failed to download installer!"
 }
 
 # Restore original QuickEdit setting
