@@ -289,6 +289,13 @@ try {
 	Return
 }
 
+# Fix line endings - GitHub raw serves LF, but batch files need CRLF
+try {
+	$content = [System.IO.File]::ReadAllText($FilePath)
+	$content = $content -replace "`r`n", "`n" -replace "`n", "`r`n"
+	[System.IO.File]::WriteAllText($FilePath, $content)
+} catch { }
+
 if (!(Test-Path $FilePath)) {
 	Write-Host "ERROR: Download succeeded but file not found!" -ForegroundColor Red
 	Stop-Transcript | Out-Null
@@ -309,7 +316,7 @@ if ($null -eq $oldQuickEdit) { $oldQuickEdit = 1 }
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
 
 try {
-	Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
+	Start-Process -Verb runAs $FilePath -Wait
 	Write-Host ""
 	Write-Host "Installer finished!" -ForegroundColor Green
 } catch {
