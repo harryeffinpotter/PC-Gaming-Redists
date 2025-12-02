@@ -2,40 +2,106 @@
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
 
-# PCGR ASCII Art Logo - each letter in pastel colors
+# PCGR ASCII Art Logo - rainbow gradient left to right
+$b = [char]0x2588  # full block
+$s = [char]0x2591  # light shade
+$e = [char]27      # escape char for ANSI
+$r = "$e[0m"       # Reset
+
+# Pastel rainbow - super gradual: Pink -> Yellow -> Green -> Cyan -> Blue (no loop back)
+$rainbow = @(
+    # Light Pink
+    "$e[38;2;255;182;193m",
+    "$e[38;2;255;186;191m",
+    "$e[38;2;255;190;189m",
+    "$e[38;2;255;194;187m",
+    "$e[38;2;255;198;185m",
+    "$e[38;2;255;202;183m",
+    "$e[38;2;255;206;181m",
+    "$e[38;2;255;210;179m",
+    "$e[38;2;255;214;177m",
+    "$e[38;2;255;218;175m",
+    # Pink to Yellow
+    "$e[38;2;255;222;173m",
+    "$e[38;2;255;226;172m",
+    "$e[38;2;255;230;171m",
+    "$e[38;2;255;234;170m",
+    "$e[38;2;255;238;170m",
+    "$e[38;2;255;242;170m",
+    "$e[38;2;255;246;170m",
+    "$e[38;2;255;250;170m",
+    "$e[38;2;253;252;172m",
+    "$e[38;2;248;254;174m",
+    # Yellow to Green
+    "$e[38;2;243;255;176m",
+    "$e[38;2;235;255;178m",
+    "$e[38;2;227;255;180m",
+    "$e[38;2;219;255;182m",
+    "$e[38;2;211;255;184m",
+    "$e[38;2;203;255;186m",
+    "$e[38;2;195;255;190m",
+    "$e[38;2;190;255;195m",
+    "$e[38;2;185;255;200m",
+    "$e[38;2;180;255;208m",
+    # Green to Cyan
+    "$e[38;2;178;255;216m",
+    "$e[38;2;176;255;224m",
+    "$e[38;2;174;255;232m",
+    "$e[38;2;172;255;240m",
+    "$e[38;2;172;252;248m",
+    "$e[38;2;172;248;252m",
+    "$e[38;2;172;244;255m",
+    "$e[38;2;172;238;255m",
+    "$e[38;2;174;232;255m",
+    "$e[38;2;176;226;255m",
+    # Cyan to Blue
+    "$e[38;2;178;220;255m",
+    "$e[38;2;180;214;255m",
+    "$e[38;2;182;208;255m",
+    "$e[38;2;184;202;255m",
+    "$e[38;2;186;196;255m",
+    "$e[38;2;188;192;255m",
+    "$e[38;2;190;188;255m",
+    "$e[38;2;192;185;255m"
+)
+
+$line1 = "  $b$b$b$b$b$b$b$b$b$b   $b$b$b$b$b$b$b$b   $b$b$b$b$b$b$b$b$b  $b$b$b$b$b$b$b$b$b "
+$line2 = " $s$s$b$b$b$s$s$s$b$b$b$s$s$b$b$b$s$s$s$s$b$b  $b$b$b$s$s$s$s$s$b$b$b$s$s$b$b$b$s$s$s$b$b$b"
+$line3 = "  $s$b$b$b $s$s$b$b$b$s$b$b$b   $s$s$s$s $b$b$b     $s$s$s  $s$b$b$b $s$s$b$b$b "
+$line4 = "  $s$b$b$b$b$b$b$b$b $s$b$b$b       $s$b$b$b          $s$b$b$b$b$b$b$b$b  "
+$line5 = "  $s$b$b$b$s$s$s$s  $s$b$b$b       $s$b$b$b    $b$b$b$b$b $s$b$b$b$s$b$b$b   "
+$line6 = "  $s$b$b$b      $s$s$b$b$b   $s$b$b$s$s$b$b$b $s$s$s$b$b$b  $s$b$b$b$s$s$b$b$b  "
+$line7 = "  $b$b$b$b$b      $s$s$b$b$b$b$b$b$b$b $s$s$b$b$b$b$b$b$b$b$b  $b$b$b$b $s$s$b$b$b$b"
+$line8 = " $s$s$s$s$s        $s$s$s$s$s$s$s$s$s  $s$s$s$s$s$s$s$s$s  $s$s$s$s$s  $s$s$s$s"
+$lines = @($line1, $line2, $line3, $line4, $line5, $line6, $line7, $line8)
+
 Write-Host ""
-Write-Host "  ██████████ " -ForegroundColor Magenta -NoNewline
-Write-Host "  ████████  " -ForegroundColor Blue -NoNewline
-Write-Host " █████████ " -ForegroundColor Cyan -NoNewline
-Write-Host " █████████ " -ForegroundColor Green
-Write-Host " ░░███░░░███" -ForegroundColor Magenta -NoNewline
-Write-Host "░░███░░░░██ " -ForegroundColor Blue -NoNewline
-Write-Host "███░░░░░███" -ForegroundColor Cyan -NoNewline
-Write-Host "░░███░░░███" -ForegroundColor Green
-Write-Host "  ░███ ░░███" -ForegroundColor Magenta -NoNewline
-Write-Host "░███   ░░░░" -ForegroundColor Blue -NoNewline
-Write-Host "███     ░░░" -ForegroundColor Cyan -NoNewline
-Write-Host " ░███ ░░███ " -ForegroundColor Green
-Write-Host "  ░████████ " -ForegroundColor Magenta -NoNewline
-Write-Host "░███       " -ForegroundColor Blue -NoNewline
-Write-Host "░███       " -ForegroundColor Cyan -NoNewline
-Write-Host " ░████████  " -ForegroundColor Green
-Write-Host "  ░███░░░░  " -ForegroundColor Magenta -NoNewline
-Write-Host "░███       " -ForegroundColor Blue -NoNewline
-Write-Host "░███    ████" -ForegroundColor Cyan -NoNewline
-Write-Host "█ ░███░███   " -ForegroundColor Green
-Write-Host "  ░███      " -ForegroundColor Magenta -NoNewline
-Write-Host "░░███   ░██" -ForegroundColor Blue -NoNewline
-Write-Host "░░███ ░░░███" -ForegroundColor Cyan -NoNewline
-Write-Host " ░███░░███  " -ForegroundColor Green
-Write-Host "  █████     " -ForegroundColor Magenta -NoNewline
-Write-Host " ░░████████" -ForegroundColor Blue -NoNewline
-Write-Host " ░░█████████" -ForegroundColor Cyan -NoNewline
-Write-Host " ████ ░░████" -ForegroundColor Green
-Write-Host " ░░░░░      " -ForegroundColor Magenta -NoNewline
-Write-Host "  ░░░░░░░░░" -ForegroundColor Blue -NoNewline
-Write-Host "  ░░░░░░░░░" -ForegroundColor Cyan -NoNewline
-Write-Host " ░░░░░  ░░░░" -ForegroundColor Green
+foreach ($line in $lines) {
+    $chars = $line.ToCharArray()
+    $len = $chars.Length
+    $out = ""
+    for ($i = 0; $i -lt $len; $i++) {
+        $colorIdx = [Math]::Floor(($i / $len) * $rainbow.Length)
+        if ($colorIdx -ge $rainbow.Length) { $colorIdx = $rainbow.Length - 1 }
+        $out += $rainbow[$colorIdx] + $chars[$i]
+    }
+    Write-Host "$out$r"
+}
+Write-Host ""
+
+# Text lines with same gradient 
+$textLines = @("              PC  Gaming  Redists", "     Downloading  installer,  please  wait...")
+foreach ($line in $textLines) {
+    $chars = $line.ToCharArray()
+    $len = $chars.Length
+    $out = ""
+    for ($i = 0; $i -lt $len; $i++) {
+        $colorIdx = [Math]::Floor(($i / $len) * $rainbow.Length)
+        if ($colorIdx -ge $rainbow.Length) { $colorIdx = $rainbow.Length - 1 }
+        $out += $rainbow[$colorIdx] + $chars[$i]
+    }
+    Write-Host "$out$r"
+}
 Write-Host ""
 
 Function Test-CommandExists
@@ -331,10 +397,21 @@ if (!(Test-Path $FilePath)) {
 	Return
 }
 
-Write-Host "Launching " -ForegroundColor Red -NoNewline
-Write-Host "AIO Redists Installer " -ForegroundColor Green -NoNewline
-Write-Host "Window... " -ForegroundColor Blue -NoNewline
-Write-Host "(Be sure to agree to UAC prompt)" -ForegroundColor Yellow
+# Rainbow text for launch message (bold)
+$bold = "$e[1m"
+$launchLines = @("          Launching Installer Window.", "       (Be sure to agree to UAC prompt)")
+foreach ($line in $launchLines) {
+    $chars = $line.ToCharArray()
+    $len = $chars.Length
+    $out = ""
+    for ($i = 0; $i -lt $len; $i++) {
+        $colorIdx = [Math]::Floor(($i / $len) * $rainbow.Length)
+        if ($colorIdx -ge $rainbow.Length) { $colorIdx = $rainbow.Length - 1 }
+        $out += $bold + $rainbow[$colorIdx] + $chars[$i]
+    }
+    Write-Host "$out$r"
+}
+Start-Sleep -Seconds 3
 
 # Disable QuickEdit so clicking doesn't pause the script
 $regPath = "HKCU:\Console"
