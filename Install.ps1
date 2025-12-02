@@ -176,8 +176,7 @@ Function Install-WingetDependencies
 
 	# STEP 1: Update sources and test
 	Update-WingetSources
-	# TODO: Remove $false after testing - forces first test to fail
-	if ($false -and (Test-WingetSearch)) {
+	if (Test-WingetSearch) {
 		echo "WinGet is working!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
@@ -252,8 +251,7 @@ Function Install-WingetDependencies
 $ErrorActionPreference = 'stop'
 
 # Check if winget exists AND actually works
-# TODO: Remove "$true -or" after testing - forces dependency install for testing
-if ($true -or !(Test-CommandExists winget) -or !(Test-WingetWorks))
+if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 {
 	echo "WinGet is missing or not working properly..."
 	echo "This is common on fresh Windows 11 installs."
@@ -297,21 +295,34 @@ catch
 	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath
 	Return
 }
+# Disable QuickEdit so clicking doesn't pause the script
+$regPath = "HKCU:\Console"
+$oldQuickEdit = $null
+try {
+	$oldQuickEdit = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit
+} catch { }
+if ($null -eq $oldQuickEdit) { $oldQuickEdit = 1 }
+Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
+
 try
 {
 if (Test-Path $FilePath)
 {
-	Start-Process -Verb runAs $FilePath -Wait
+	# Start in new console so it picks up the registry change
+	Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
 	$item = Get-Item -LiteralPath $FilePath
 	$item.Delete()
 }
 }
 catch
 {
-Start-Process -Verb runAs $FilePath -Wait
+Start-Process cmd.exe -ArgumentList "/c `"$FilePath`" ELEV" -Verb runAs -Wait
 	$item = Get-Item -LiteralPath $FilePath
 	$item.Delete()
- }
+}
+
+# Restore original QuickEdit setting
+Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value $oldQuickEdit -Type DWord -Force
 
 Stop-Transcript
 echo ""

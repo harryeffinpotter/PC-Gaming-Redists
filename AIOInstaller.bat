@@ -10,7 +10,7 @@ setlocal EnableDelayedExpansion
 NET FILE 1>NUL 2>NUL
 if '%errorlevel%' == '0' ( goto :gotPrivileges ) else ( goto :getPrivileges )
 :getPrivileges
-if '%1'=='ELEV' (echo ELEV & shift /1 & goto gotPrivileges)
+if '%1'=='ELEV' (echo ELEV & shift /1 & goto :gotPrivileges)
 ECHO Set UAC = CreateObject^("Shell.Application"^) > "%vbsGetPrivileges%"
 ECHO args = "ELEV " >> "%vbsGetPrivileges%"
 ECHO For Each strArg in WScript.Arguments >> "%vbsGetPrivileges%"
@@ -24,9 +24,7 @@ setlocal & pushd .
 cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 
-REM Disable QuickEdit mode so clicking doesn't pause the script
-powershell -NoProfile -Command "& {$h=Add-Type -MemberDefinition '[DllImport(\"kernel32.dll\")] public static extern IntPtr GetStdHandle(int h);[DllImport(\"kernel32.dll\")] public static extern bool SetConsoleMode(IntPtr h,int m);' -Name W -PassThru;$s=$h::GetStdHandle(-10);$h::SetConsoleMode($s,0x0080)}" 2>nul
-
+cls
 title PC Gaming Redists AIO Installer
 color 1b
 echo =================================
@@ -38,6 +36,7 @@ echo.
 echo Press any key to begin.
 pause > nul
 cls
+
 echo.
 echo Checking if WinGet is working...
 echo.
@@ -48,6 +47,7 @@ winget search Microsoft.VCRedist.2015+.x64 >"%temp%\winget_test.txt" 2>&1
 findstr /C:"Microsoft.VCRedist" "%temp%\winget_test.txt" >nul 2>nul
 if %errorlevel% NEQ 0 (
     cls
+    
     echo ============================================
     echo   ERROR: WinGet is not working properly!
     echo ============================================
@@ -78,6 +78,7 @@ exit /B
 
 :wingetOK
 cls
+
 echo ============================
 echo   Installing VC Redists...
 echo ============================
@@ -86,23 +87,29 @@ Timeout /t 4 /nobreak 1>nul 2>nul
 setlocal ENABLEDELAYEDEXPANSION
 winget search Microsoft.VCRed --accept-source-agreements >NUL 2>NUL
 FOR /F "tokens=*" %%G IN ('winget search Microsoft.VCRed') DO (
+set /a skip=0
 set "str=%%G"
 set "str=!str:*Microsoft.=Microsoft.!"
 for /f "tokens=1 delims= " %%a in ("!str!") do (
-echo %%a | FIND /I "Microsoft." 1>nul 2>Nul && ( 
+echo %%a | FIND /I "arm" 1>nul 2>Nul && (set /a skip=1)
+echo %%a | FIND /I "Microsoft." 1>nul 2>Nul && (
+if "!skip!" == "0" (
 call :GET %%a
+)
 )
 )
 )
 endlocal
 )
 cls
+
 echo ============================
 echo   + VC Redists Installed +
 echo ============================
 echo.
 Timeout /t 2 /nobreak 1>nul 2>nul
 cls
+
 echo ============================
 echo  Installing .NET Redists...
 echo ============================
@@ -141,12 +148,14 @@ goto :eol
 
 :finished
 cls
+
 echo ============================
 echo  + Installed .Net redists +
 echo ============================
 echo.
 Timeout /t 2 /nobreak 1>nul 2>nul
 cls
+
 echo ============================
 echo  Installing common tools...
 echo ============================
@@ -164,13 +173,17 @@ winget install -e --id Microsoft.PowerShell --accept-package-agreements --accept
 Timeout /t 2 /nobreak 1>nul 2>nul
 
 cls
+
 echo ============================
 echo  + Installed Common Tools +
 echo ============================
 echo.
 Timeout /t 2 /nobreak 1>nul 2>nul
 cls
+
 echo All done. Press any key to exit.
 pause > nul
 
 :eol
+goto :eof
+
