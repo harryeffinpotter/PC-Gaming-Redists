@@ -431,11 +431,26 @@ try {
 	pause
 }
 
-# Cleanup - restore QuickEdit from backup and delete backup file
+# Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
+
+# Ask about permanently disabling QuickEdit
 if (Test-Path $quickEditBackup) {
-	$savedValue = Get-Content $quickEditBackup -ErrorAction SilentlyContinue
-	if ($savedValue) { Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value ([int]$savedValue) -Type DWord -Force }
+	Write-Host ""
+	Write-Host "Would you like to permanently disable QuickEdit?" -ForegroundColor Cyan
+	Write-Host "(This is the setting that causes scripts to pause when you click on the window)" -ForegroundColor Gray
+	Write-Host "If you don't know what this is, disabling it prevents accidental pauses." -ForegroundColor Gray
+	Write-Host ""
+	$response = Read-Host "Permanently disable QuickEdit? (Y/n)"
+
+	if ($response -eq "" -or $response -match "^[Yy]") {
+		Write-Host "QuickEdit permanently disabled." -ForegroundColor Green
+		Write-Host "You can re-enable it anytime by running RestoreQuickEdit.bat from the repo." -ForegroundColor Gray
+	} else {
+		$savedValue = Get-Content $quickEditBackup -ErrorAction SilentlyContinue
+		if ($savedValue) { Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value ([int]$savedValue) -Type DWord -Force }
+		Write-Host "QuickEdit restored to original setting." -ForegroundColor Green
+	}
 	Remove-Item $quickEditBackup -Force -ErrorAction SilentlyContinue
 }
 Stop-Transcript | Out-Null
