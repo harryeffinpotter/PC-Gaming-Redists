@@ -15,13 +15,13 @@ Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly im
 
 ## Quick Install
 
-#### Option 1:
-Open **PowerShell** and run:
+### Option 1:
+Open **PowerShell** (**NOT** as administrator) and run:
 ```powershell
 iwr -useb https://s.hfnp.dev/PCGR | iex
 ```
 
-#### Option 2:
+### Option 2:
 Download and run [Install.bat](https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/Install.bat)
 
 ---
