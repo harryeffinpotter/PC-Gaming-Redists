@@ -397,7 +397,7 @@ if (!(Test-Path $FilePath)) {
 
 # Rainbow text for launch message (bold)
 $bold = "$e[1m"
-$launchLines = @("          Launching Installer Window.", "       (Be sure to agree to UAC prompt)")
+$launchLines = @("          Launching Installer Window.", "        (Be sure to agree to UAC prompt)")
 foreach ($line in $launchLines) {
     $chars = $line.ToCharArray()
     $len = $chars.Length
