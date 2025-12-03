@@ -413,9 +413,15 @@ Start-Sleep -Seconds 3
 
 # Disable QuickEdit so clicking doesn't pause the script
 $regPath = "HKCU:\Console"
-$oldQuickEdit = $null
-try { $oldQuickEdit = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit } catch { }
-if ($null -eq $oldQuickEdit) { $oldQuickEdit = 1 }
+$quickEditBackup = "$env:APPDATA\PCGR_QuickEdit_Backup.txt"
+
+# Only save if backup doesn't exist (preserves REAL original across interrupted runs)
+if (!(Test-Path $quickEditBackup)) {
+	$currentValue = $null
+	try { $currentValue = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit } catch { }
+	if ($null -eq $currentValue) { $currentValue = 1 }
+	$currentValue | Out-File -FilePath $quickEditBackup -Force
+}
 Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
 
 try {
@@ -425,7 +431,11 @@ try {
 	pause
 }
 
-# Cleanup
+# Cleanup - restore QuickEdit from backup and delete backup file
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
-Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value $oldQuickEdit -Type DWord -Force
+if (Test-Path $quickEditBackup) {
+	$savedValue = Get-Content $quickEditBackup -ErrorAction SilentlyContinue
+	if ($savedValue) { Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value ([int]$savedValue) -Type DWord -Force }
+	Remove-Item $quickEditBackup -Force -ErrorAction SilentlyContinue
+}
 Stop-Transcript | Out-Null
