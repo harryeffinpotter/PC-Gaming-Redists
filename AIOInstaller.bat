@@ -67,8 +67,8 @@ set "WARN_TEXT=Now installing... Please be patient, input may be interrupted whi
 
 echo.
 call :rainbowsep
-call :rainbow "PC Gaming Redists AIO Installer"
-call :rainbow "By HarryEffinPotter and Skrimix"
+call :rainbow "    PC Gaming Redists AIO Installer"
+call :rainbow "    By HarryEffinPotter and Skrimix"
 call :rainbowsep
 call :rainbow "NET / VC++ / XNA / 7Zip / DirectX"
 echo.
