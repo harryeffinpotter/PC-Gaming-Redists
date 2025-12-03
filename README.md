@@ -14,10 +14,15 @@ Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly im
 ---
 
 ## Quick Install
+
+#### Option 1:
 Open **PowerShell** and run:
 ```powershell
 iwr -useb https://s.hfnp.dev/PCGR | iex
 ```
+
+#### Option 2:
+Download and run Install.bat.
 
 ---
 
