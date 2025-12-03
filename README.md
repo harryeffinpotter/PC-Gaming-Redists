@@ -1,26 +1,26 @@
 ## **PC Gaming Redistributable Packages AIO Installer**
- - Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly improved upon by the legendary [@skrimix.](https://github.com/skrimix)
-&nbsp;
+Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly improved upon by the legendary [@skrimix](https://github.com/skrimix)
 
+---
 
-UPDATED ON SEPTEMBER 16TH 2024:
-- Noticed that on fresh installs the script would only get the couple of extra tools at the end, ignoring the entire purpose of the script. This was due to Windows now including Winget with more recent windows builds, but not including the proper sources with winget. The proper sources may be included when windows is fully updated(not entirely sure), however most of the time when I, and others, are running this script, we are running it after a reformat, and not necessarily after we have all cumulative updates installed. So I added lines that *SHOULD* fix this. If this issue persists for anyone please open an issue. Also wouldn't mind if someone opened an issue just to tell me "Hey this worked on a fresh install again!". Thanks!
-- Added 2 packages to .net exclusions and 1 package to VC++ exclusions since they were all mismatches.
-- Same code that fixes the fresh install issue mentioned above SHOULD install winget much cleaner for systems without it.
+### DECEMBER 2025 UPDATE:
+- **Fixed silent failing** - Script no longer pretends everything is fine when WinGet is broken/missing
+- **WinGet auto-install** - Automatic installation under more scenarios/fresh Windows installs
+- **Better detection** - Added extensive checks to verify WinGet is actually working
+- **ARM64 skip** - No longer attempts to install ARM64 packages on x64 systems
+- **Fresh install support** - Should now work on fresh Windows installs (user testing appreciated!)
 
-Instructions
------
- - **Option 1)** Download **[Install.bat](https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/Install.bat)** and double click it to run it (DON'T RUN AS ADMIN!).
+---
 
- - **Option 2)** Open a regular **PowerShell** (DON'T RUN AS ADMIN) and run the following one-liner:
- &nbsp; 
+## Quick Install
+Open **PowerShell** and run:
+```powershell
+iwr -useb https://s.hfnp.dev/PCGR | iex
+```
 
-    `iwr -useb https://raw.githack.com/harryeffinpotter/PC-Gaming-Redists-AIO/master/Install.ps1 | iex`
+---
 
-   
 [![Github All Releases](https://img.shields.io/github/downloads/harryeffinpotter/PC-Gaming-Redists/total.svg)]()  ![](https://komarev.com/ghpvc/?username=harryeffinpotter) (since 04-12-2024)
 
-
-Troubleshooting:
-----
-If for whatever reason when you try to run the script you get [this error (Click to view)](https://i.imgur.com/TOvxPUq.png), simply [click here to download WinGet.msixbundle](https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/WinGet.msixbundle), run it, and click Update/Install. Then try either option above again.
+## Troubleshooting
+If for whatever reason when you try to run the script you get [this error (Click to view)](https://i.imgur.com/TOvxPUq.png), simply [click here to download WinGet.msixbundle](https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/WinGet.msixbundle), run it, and click Update/Install. Then try the install command above again.

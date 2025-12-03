@@ -271,7 +271,7 @@ Function Install-WingetDependencies
 		echo "Failed to download dependencies"
 	}
 
-	# STEP 1: Update sources and test
+	# STEP 1: Update sources and test if winget already works
 	Update-WingetSources
 	if (Test-WingetSearch) {
 		echo "WinGet is working!"
@@ -291,7 +291,6 @@ Function Install-WingetDependencies
 	curl.exe -L -s -o $tempWinget "https://aka.ms/getwinget"
 	Install-AppxWithRetry -Path $tempWinget -DisplayName "WinGet"
 
-	# Test again
 	Update-WingetSources
 	if (Test-WingetSearch) {
 		echo "WinGet is working!"
@@ -306,7 +305,6 @@ Function Install-WingetDependencies
 		Install-AppxWithRetry -Path $vc.FullName -DisplayName $vc.BaseName
 	}
 
-	# Test again
 	Update-WingetSources
 	if (Test-WingetSearch) {
 		echo "WinGet is working!"
@@ -314,7 +312,7 @@ Function Install-WingetDependencies
 		return
 	}
 
-	# STEP 4: Try the msixbundle
+	# STEP 4: Try the msixbundle from GitHub
 	echo "Still not working. Trying WinGet msixbundle..."
 	$wingetBundleUrl = "https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
 	$wingetBundlePath = "$tempDir\WinGet.msixbundle"
