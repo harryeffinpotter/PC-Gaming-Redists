@@ -22,7 +22,7 @@ iwr -useb https://s.hfnp.dev/PCGR | iex
 ```
 
 #### Option 2:
-Download and run Install.bat.
+Download and run [Install.bat](https://github.com/harryeffinpotter/PC-Gaming-Redists/raw/main/Install.bat)
 
 ---
 
