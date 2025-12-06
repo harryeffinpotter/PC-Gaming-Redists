@@ -104,6 +104,20 @@ foreach ($line in $textLines) {
 }
 Write-Host ""
 
+Function Write-Rainbow
+{
+	Param ([string]$Text)
+	$chars = $Text.ToCharArray()
+	$len = $chars.Length
+	$out = ""
+	for ($i = 0; $i -lt $len; $i++) {
+		$colorIdx = [Math]::Floor(($i / $len) * $rainbow.Length)
+		if ($colorIdx -ge $rainbow.Length) { $colorIdx = $rainbow.Length - 1 }
+		$out += $rainbow[$colorIdx] + $chars[$i]
+	}
+	Write-Host "$out$r"
+}
+
 Function Test-CommandExists
 {
 	Param ($command)
@@ -260,7 +274,7 @@ Function Test-WingetSearch
 
 Function Install-WingetDependencies
 {
-	echo "Fixing WinGet..."
+	Write-Rainbow "Fixing WinGet..."
 
 	$ProgressPreference = 'SilentlyContinue'
 	$tempDir = "$env:TEMP\WinGetBootstrap"
@@ -270,7 +284,7 @@ Function Install-WingetDependencies
 	$depsZipPath = "$tempDir\Dependencies.zip"
 	$depsExtractPath = "$tempDir\Dependencies"
 
-	echo "  Downloading dependencies..."
+	Write-Rainbow "  Downloading dependencies..."
 	try {
 		curl.exe -L -s -o $depsZipPath $depsZipUrl
 		Expand-Archive -Path $depsZipPath -DestinationPath $depsExtractPath -Force
@@ -283,14 +297,14 @@ Function Install-WingetDependencies
 	}
 
 	# Install VCLibs
-	echo "  Installing VCLibs..."
+	Write-Rainbow "  Installing VCLibs..."
 	$vcLibs = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*VCLibs*x64*.appx" -ErrorAction SilentlyContinue
 	foreach ($vc in $vcLibs) {
 		Install-AppxSilent -Path $vc.FullName -DisplayName $vc.BaseName | Out-Null
 	}
 
 	# Install UI.Xaml
-	echo "  Installing UI.Xaml..."
+	Write-Rainbow "  Installing UI.Xaml..."
 	$uiXaml = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*UI.Xaml*x64*.appx" -ErrorAction SilentlyContinue | Select-Object -First 1
 	if ($uiXaml) {
 		Install-AppxSilent -Path $uiXaml.FullName -DisplayName "Microsoft.UI.Xaml" | Out-Null
@@ -307,11 +321,11 @@ Function Install-WingetDependencies
 	}
 
 	# Download and install WinGet
-	echo "  Downloading WinGet..."
+	Write-Rainbow "  Downloading WinGet..."
 	$tempWinget = "$tempDir\getwinget.msixbundle"
 	curl.exe -L -s -o $tempWinget "https://aka.ms/getwinget"
 
-	echo "  Installing WinGet..."
+	Write-Rainbow "  Installing WinGet..."
 	try {
 		Add-AppxPackage -Path $tempWinget -ForceApplicationShutdown -ErrorAction Stop
 	}
@@ -319,13 +333,13 @@ Function Install-WingetDependencies
 		$errorMsg = $_.Exception.Message
 		if ($errorMsg -match "Microsoft\.WindowsAppRuntime\.(\d+\.\d+)") {
 			$runtimeVersion = $matches[1]
-			echo "  Installing WindowsAppRuntime $runtimeVersion..."
+			Write-Rainbow "  Installing WindowsAppRuntime $runtimeVersion..."
 			$appRuntimeUrl = "https://aka.ms/windowsappsdk/$runtimeVersion/latest/windowsappruntimeinstall-x64.exe"
 			$appRuntimeExe = "$tempDir\WindowsAppRuntimeInstall.exe"
 			curl.exe -L -s -o $appRuntimeExe $appRuntimeUrl
 			if (Test-Path $appRuntimeExe) {
 				Start-Process -FilePath $appRuntimeExe -ArgumentList "--quiet" -Wait -ErrorAction SilentlyContinue
-				echo "  Installing WinGet..."
+				Write-Rainbow "  Installing WinGet..."
 				Add-AppxPackage -Path $tempWinget -ForceApplicationShutdown -ErrorAction SilentlyContinue
 			}
 		}
@@ -333,13 +347,13 @@ Function Install-WingetDependencies
 
 	Update-WingetSources
 	if (Test-WingetSearch) {
-		echo "  WinGet fixed!"
+		Write-Rainbow "  WinGet fixed!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
 	}
 
 	# Fallback to GitHub
-	echo "  Trying GitHub fallback..."
+	Write-Rainbow "  Trying GitHub fallback..."
 	$wingetBundleUrl = "https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
 	$wingetBundlePath = "$tempDir\WinGet.msixbundle"
 	curl.exe -L -s -o $wingetBundlePath $wingetBundleUrl
@@ -349,15 +363,15 @@ Function Install-WingetDependencies
 
 	Update-WingetSources
 	if (Test-WingetSearch) {
-		echo "  WinGet fixed!"
+		Write-Rainbow "  WinGet fixed!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
 	}
 
-	echo ""
-	echo "WinGet could not be fixed automatically."
-	echo "Report: https://github.com/harryeffinpotter/PC-Gaming-Redists/issues"
-	echo ""
+	Write-Host ""
+	Write-Rainbow "WinGet could not be fixed automatically."
+	Write-Rainbow "Report: https://github.com/harryeffinpotter/PC-Gaming-Redists/issues"
+	Write-Host ""
 
 	Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 }
