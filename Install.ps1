@@ -227,6 +227,7 @@ Function Install-AppxWithRetry
 			# Other error or final attempt failed
 			if ($attempt -eq $maxRetries) {
 				echo "Failed to install $DisplayName"
+				echo "  Error: $errorMsg"
 				return $false
 			}
 		}
@@ -259,92 +260,103 @@ Function Test-WingetSearch
 
 Function Install-WingetDependencies
 {
-	echo "Attempting to fix WinGet..."
-	echo ""
+	echo "Fixing WinGet..."
 
 	$ProgressPreference = 'SilentlyContinue'
 	$tempDir = "$env:TEMP\WinGetBootstrap"
 	New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
-	# Download dependencies zip upfront
 	$depsZipUrl = "https://github.com/microsoft/winget-cli/releases/latest/download/DesktopAppInstaller_Dependencies.zip"
 	$depsZipPath = "$tempDir\Dependencies.zip"
 	$depsExtractPath = "$tempDir\Dependencies"
 
-	echo "Downloading dependencies from Microsoft..."
+	echo "  Downloading dependencies..."
 	try {
 		curl.exe -L -s -o $depsZipPath $depsZipUrl
 		Expand-Archive -Path $depsZipPath -DestinationPath $depsExtractPath -Force
-	} catch {
-		echo "Failed to download dependencies"
-	}
+	} catch { }
 
-	# STEP 1: Update sources and test if winget already works
 	Update-WingetSources
 	if (Test-WingetSearch) {
-		echo "WinGet is working!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
 	}
 
-	# STEP 2: Install WindowsAppRuntime, then getwinget
-	echo "WinGet not working. Installing WindowsAppRuntime..."
-	$appRuntime = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*WindowsAppRuntime*x64*.msix" -ErrorAction SilentlyContinue | Select-Object -First 1
-	if ($appRuntime) {
-		Install-AppxWithRetry -Path $appRuntime.FullName -DisplayName "WindowsAppRuntime"
-	}
-
-	echo "Installing WinGet from aka.ms..."
-	$tempWinget = "$tempDir\getwinget.msixbundle"
-	curl.exe -L -s -o $tempWinget "https://aka.ms/getwinget"
-	Install-AppxWithRetry -Path $tempWinget -DisplayName "WinGet"
-
-	Update-WingetSources
-	if (Test-WingetSearch) {
-		echo "WinGet is working!"
-		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
-		return
-	}
-
-	# STEP 3: Try VCLibs
-	echo "Still not working. Installing VCLibs..."
+	# Install VCLibs
+	echo "  Installing VCLibs..."
 	$vcLibs = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*VCLibs*x64*.appx" -ErrorAction SilentlyContinue
 	foreach ($vc in $vcLibs) {
-		Install-AppxWithRetry -Path $vc.FullName -DisplayName $vc.BaseName
+		Install-AppxSilent -Path $vc.FullName -DisplayName $vc.BaseName | Out-Null
+	}
+
+	# Install UI.Xaml
+	echo "  Installing UI.Xaml..."
+	$uiXaml = Get-ChildItem -Path $depsExtractPath -Recurse -Filter "*UI.Xaml*x64*.appx" -ErrorAction SilentlyContinue | Select-Object -First 1
+	if ($uiXaml) {
+		Install-AppxSilent -Path $uiXaml.FullName -DisplayName "Microsoft.UI.Xaml" | Out-Null
+	} else {
+		$uiXamlUrl = "https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.8.6"
+		$uiXamlZip = "$tempDir\Microsoft.UI.Xaml.zip"
+		$uiXamlExtract = "$tempDir\UIXaml"
+		curl.exe -L -s -o $uiXamlZip $uiXamlUrl
+		Expand-Archive -Path $uiXamlZip -DestinationPath $uiXamlExtract -Force -ErrorAction SilentlyContinue
+		$uiXamlAppx = Get-ChildItem -Path $uiXamlExtract -Recurse -Filter "*x64*.appx" -ErrorAction SilentlyContinue | Select-Object -First 1
+		if ($uiXamlAppx) {
+			Install-AppxSilent -Path $uiXamlAppx.FullName -DisplayName "Microsoft.UI.Xaml" | Out-Null
+		}
+	}
+
+	# Download and install WinGet
+	echo "  Downloading WinGet..."
+	$tempWinget = "$tempDir\getwinget.msixbundle"
+	curl.exe -L -s -o $tempWinget "https://aka.ms/getwinget"
+
+	echo "  Installing WinGet..."
+	try {
+		Add-AppxPackage -Path $tempWinget -ForceApplicationShutdown -ErrorAction Stop
+	}
+	catch {
+		$errorMsg = $_.Exception.Message
+		if ($errorMsg -match "Microsoft\.WindowsAppRuntime\.(\d+\.\d+)") {
+			$runtimeVersion = $matches[1]
+			echo "  Installing WindowsAppRuntime $runtimeVersion..."
+			$appRuntimeUrl = "https://aka.ms/windowsappsdk/$runtimeVersion/latest/windowsappruntimeinstall-x64.exe"
+			$appRuntimeExe = "$tempDir\WindowsAppRuntimeInstall.exe"
+			curl.exe -L -s -o $appRuntimeExe $appRuntimeUrl
+			if (Test-Path $appRuntimeExe) {
+				Start-Process -FilePath $appRuntimeExe -ArgumentList "--quiet" -Wait -ErrorAction SilentlyContinue
+				echo "  Installing WinGet..."
+				Add-AppxPackage -Path $tempWinget -ForceApplicationShutdown -ErrorAction SilentlyContinue
+			}
+		}
 	}
 
 	Update-WingetSources
 	if (Test-WingetSearch) {
-		echo "WinGet is working!"
+		echo "  WinGet fixed!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
 	}
 
-	# STEP 4: Try the msixbundle from GitHub
-	echo "Still not working. Trying WinGet msixbundle..."
+	# Fallback to GitHub
+	echo "  Trying GitHub fallback..."
 	$wingetBundleUrl = "https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
 	$wingetBundlePath = "$tempDir\WinGet.msixbundle"
 	curl.exe -L -s -o $wingetBundlePath $wingetBundleUrl
-	Install-AppxWithRetry -Path $wingetBundlePath -DisplayName "WinGet Bundle"
+	if (Test-Path $wingetBundlePath) {
+		Add-AppxPackage -Path $wingetBundlePath -ForceApplicationShutdown -ErrorAction SilentlyContinue
+	}
 
-	# Final test
 	Update-WingetSources
 	if (Test-WingetSearch) {
-		echo "WinGet is working!"
+		echo "  WinGet fixed!"
 		Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 		return
 	}
 
-	# FAILED - tell user to report
 	echo ""
-	echo "============================================"
-	echo "  WinGet could not be fixed automatically"
-	echo "============================================"
-	echo ""
-	echo "Please report this issue at:"
-	echo "  https://github.com/harryeffinpotter/PC-Gaming-Redists/issues"
-	echo ""
-	echo "Include your Windows version and any error messages."
+	echo "WinGet could not be fixed automatically."
+	echo "Report: https://github.com/harryeffinpotter/PC-Gaming-Redists/issues"
 	echo ""
 
 	Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
