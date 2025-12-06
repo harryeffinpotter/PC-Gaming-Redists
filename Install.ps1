@@ -107,50 +107,38 @@ Write-Host ""
 Function Test-CommandExists
 {
 	Param ($command)
-	Write-Host "[DEBUG] Checking if command exists: $command" -ForegroundColor Yellow
-	try { if (Get-Command $command) { Write-Host "[DEBUG] Command exists: $command" -ForegroundColor Green; RETURN $true } }
-	Catch { Write-Host "[DEBUG] Command NOT found: $command" -ForegroundColor Red; RETURN $false }
+	try { if (Get-Command $command) { RETURN $true } }
+	Catch { RETURN $false }
 }
 
 Function Test-WingetWorks
 {
 	# Check if winget actually works, not just exists
 	# On fresh Win11 installs winget search can hang forever waiting for source init
-	Write-Host "[DEBUG] Testing if winget actually works..." -ForegroundColor Yellow
+	# Use Start-Job with timeout to prevent hangs
 	try {
-		Write-Host "[DEBUG] Running: winget --version" -ForegroundColor Yellow
 		$version = winget --version 2>&1
-		Write-Host "[DEBUG] winget --version returned: $version" -ForegroundColor Cyan
-
 		if ($version -notmatch "^v\d+\.\d+") {
-			Write-Host "[DEBUG] Version check FAILED (bad format)" -ForegroundColor Red
 			return $false
 		}
-		Write-Host "[DEBUG] Version format OK" -ForegroundColor Green
 
 		# Test search with timeout - can hang forever on fresh installs
-		Write-Host "[DEBUG] Running winget search with 10 second timeout..." -ForegroundColor Yellow
 		$job = Start-Job -ScriptBlock { winget search Microsoft.VCRedist.2015+.x64 --accept-source-agreements 2>&1 }
 		$completed = Wait-Job $job -Timeout 10
 		if ($null -eq $completed) {
-			Write-Host "[DEBUG] Search TIMED OUT - winget sources broken" -ForegroundColor Red
 			Stop-Job $job
 			Remove-Job $job -Force
 			return $false
 		}
 		$searchResult = Receive-Job $job | Out-String
 		Remove-Job $job -Force
-		Write-Host "[DEBUG] Search completed, got $($searchResult.Length) chars" -ForegroundColor Cyan
 
 		if ($searchResult -match "Microsoft\.VCRedist") {
-			Write-Host "[DEBUG] Search found VCRedist - winget works!" -ForegroundColor Green
 			return $true
 		}
-		Write-Host "[DEBUG] Search did NOT find VCRedist" -ForegroundColor Red
 		return $false
 	}
 	catch {
-		Write-Host "[DEBUG] Exception in Test-WingetWorks: $_" -ForegroundColor Red
 		return $false
 	}
 }
@@ -271,13 +259,11 @@ Function Test-WingetSearch
 
 Function Install-WingetDependencies
 {
-	Write-Host "[DEBUG] === ENTERING Install-WingetDependencies ===" -ForegroundColor Magenta
 	echo "Attempting to fix WinGet..."
 	echo ""
 
 	$ProgressPreference = 'SilentlyContinue'
 	$tempDir = "$env:TEMP\WinGetBootstrap"
-	Write-Host "[DEBUG] Creating temp dir: $tempDir" -ForegroundColor Yellow
 	New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
 	# Download dependencies zip upfront
@@ -286,14 +272,10 @@ Function Install-WingetDependencies
 	$depsExtractPath = "$tempDir\Dependencies"
 
 	echo "Downloading dependencies from Microsoft..."
-	Write-Host "[DEBUG] curl.exe URL: $depsZipUrl" -ForegroundColor Cyan
 	try {
 		curl.exe -L -s -o $depsZipPath $depsZipUrl
-		Write-Host "[DEBUG] curl.exe complete, extracting..." -ForegroundColor Yellow
 		Expand-Archive -Path $depsZipPath -DestinationPath $depsExtractPath -Force
-		Write-Host "[DEBUG] Extract complete" -ForegroundColor Green
 	} catch {
-		Write-Host "[DEBUG] Exception: $_" -ForegroundColor Red
 		echo "Failed to download dependencies"
 	}
 
@@ -371,8 +353,6 @@ Function Install-WingetDependencies
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
 $ErrorActionPreference = 'stop'
 
-Write-Host "[DEBUG] === STARTING WINGET CHECK ===" -ForegroundColor Magenta
-
 # Check if winget exists AND actually works
 if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 {
@@ -393,21 +373,14 @@ if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 	}
 }
 
-Write-Host "[DEBUG] === WINGET CHECK COMPLETE ===" -ForegroundColor Magenta
-
 $progressPreference = 'silentlyContinue'
-Write-Host "[DEBUG] Running winget source update..." -ForegroundColor Yellow
 try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { }
-Write-Host "[DEBUG] winget source update complete" -ForegroundColor Green
 
 $DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
 $FilePath = "$env:TEMP\AIOInstaller.bat"
 
-Write-Host "[DEBUG] Downloading AIOInstaller.bat from GitHub..." -ForegroundColor Yellow
-Write-Host "[DEBUG] URL: $DownloadURL" -ForegroundColor Cyan
 try {
 	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath -ErrorAction Stop
-	Write-Host "[DEBUG] Download complete!" -ForegroundColor Green
 } catch {
 	Write-Host "ERROR: Failed to download installer!" -ForegroundColor Red
 	Write-Host $_.Exception.Message -ForegroundColor Red
