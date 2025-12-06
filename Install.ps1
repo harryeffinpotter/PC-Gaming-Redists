@@ -380,9 +380,10 @@ Function Install-WingetDependencies
 $ErrorActionPreference = 'stop'
 
 # Check if winget exists AND actually works
-Write-Rainbow "Checking winget..."
+$wingetFixRan = $false
 if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 {
+	$wingetFixRan = $true
 	Write-Rainbow "WinGet is missing or not working properly..."
 	Write-Rainbow "This is common on fresh Windows 11 installs."
 	Write-Host ""
@@ -432,7 +433,11 @@ if (!(Test-Path $FilePath)) {
 
 # Rainbow text for launch message (bold)
 $bold = "$e[1m"
-$launchLines = @("          Launching Installer Window.", "        (Be sure to agree to UAC prompt)")
+if ($wingetFixRan) {
+	$launchLines = @("Launching Installer Window.", "(Be sure to agree to UAC prompt)")
+} else {
+	$launchLines = @("          Launching Installer Window.", "        (Be sure to agree to UAC prompt)")
+}
 foreach ($line in $launchLines) {
     $chars = $line.ToCharArray()
     $len = $chars.Length
