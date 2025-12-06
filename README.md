@@ -2,8 +2,9 @@
 Written by [@harryeffinpotter](https://github.com/harryeffinpotter) & greatly improved upon by the legendary [@skrimix](https://github.com/skrimix)
 
 ---
-
+![New look!](https://share.harryeffingpotter.com/u/gaseous-antipodesgreenparakeet.gif)
 ### DECEMBER 2025 UPDATE:
+- **Added cool new look!** - Totally NOT ripped off from Gemini CLI!
 - **Fixed silent failing** - Script no longer pretends everything is fine when WinGet is broken/missing
 - **WinGet auto-install** - Automatic installation under more scenarios/fresh Windows installs
 - **Better detection** - Added extensive checks to verify WinGet is actually working
