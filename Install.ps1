@@ -163,7 +163,7 @@ Function Stop-BlockingPackages
 
 	foreach ($pkgName in $PackageNames) {
 		Get-Process | Where-Object { $_.Path -like "*$pkgName*" } | ForEach-Object {
-			echo "  Closing $($_.ProcessName)..."
+			Write-Rainbow "  Closing $($_.ProcessName)..."
 			Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
 		}
 	}
@@ -180,7 +180,7 @@ Function Install-AppxSilent
 		return $true
 	}
 	catch {
-		echo "  $DisplayName - skipped (may not be needed on this system)"
+		Write-Rainbow "  $DisplayName - skipped (may not be needed on this system)"
 		return $false
 	}
 }
@@ -195,7 +195,7 @@ Function Install-AppxWithRetry
 	for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
 		try {
 			Add-AppxPackage -Path $Path -ForceApplicationShutdown -ErrorAction Stop
-			echo "  $DisplayName installed successfully."
+			Write-Rainbow "  $DisplayName installed successfully."
 			return $true
 		}
 		catch {
@@ -217,22 +217,22 @@ Function Install-AppxWithRetry
 				$blockingApps = $blockingApps | Select-Object -Unique
 
 				if ($blockingApps.Count -gt 0 -and $attempt -lt $maxRetries) {
-					echo ""
-					echo "The following apps are blocking the installation of $DisplayName :"
+					Write-Host ""
+					Write-Rainbow "The following apps are blocking the installation of $DisplayName :"
 					foreach ($app in $blockingApps) {
-						echo "  - $app"
+						Write-Rainbow "  - $app"
 					}
-					echo ""
+					Write-Host ""
 					$response = Read-Host "Close these apps to continue? (Y/n)"
 					if ($response -eq "" -or $response -match "^[Yy]") {
-						echo "Closing blocking apps..."
+						Write-Rainbow "Closing blocking apps..."
 						Stop-BlockingPackages -PackageNames $blockingApps
 						# Also kill Edge as a precaution
 						Get-Process | Where-Object { $_.ProcessName -like "*msedge*" } | Stop-Process -Force -ErrorAction SilentlyContinue
 						Start-Sleep -Seconds 2
 						continue
 					} else {
-						echo "Couldn't install $DisplayName - continuing anyway (may not be needed)..."
+						Write-Rainbow "Couldn't install $DisplayName - continuing anyway (may not be needed)..."
 						return $false
 					}
 				}
@@ -240,8 +240,8 @@ Function Install-AppxWithRetry
 
 			# Other error or final attempt failed
 			if ($attempt -eq $maxRetries) {
-				echo "Failed to install $DisplayName"
-				echo "  Error: $errorMsg"
+				Write-Rainbow "Failed to install $DisplayName"
+				Write-Rainbow "  Error: $errorMsg"
 				return $false
 			}
 		}
@@ -251,7 +251,7 @@ Function Install-AppxWithRetry
 
 Function Update-WingetSources
 {
-	echo "Updating WinGet sources and accepting agreements..."
+	Write-Rainbow "Updating WinGet sources and accepting agreements..."
 	try {
 		winget source update --accept-source-agreements 2>&1 | Out-Null
 		winget search Microsoft.VCRedist --accept-source-agreements 2>&1 | Out-Null
@@ -380,22 +380,23 @@ Function Install-WingetDependencies
 $ErrorActionPreference = 'stop'
 
 # Check if winget exists AND actually works
+Write-Rainbow "Checking winget..."
 if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 {
-	echo "WinGet is missing or not working properly..."
-	echo "This is common on fresh Windows 11 installs."
-	echo ""
-	echo "NOTE: This may need to close Edge, Notepad, MS Store, and other apps to install dependencies."
-	echo ""
+	Write-Rainbow "WinGet is missing or not working properly..."
+	Write-Rainbow "This is common on fresh Windows 11 installs."
+	Write-Host ""
+	Write-Rainbow "NOTE: This may need to close Edge, Notepad, MS Store, and other apps to install dependencies."
+	Write-Host ""
 
 	Install-WingetDependencies
 
 	# Verify it worked
 	Start-Sleep -Seconds 2
 	if (Test-WingetWorks) {
-		echo "WinGet is now working!"
+		Write-Rainbow "WinGet is now working!"
 	} else {
-		echo "WinGet may still have issues. Continuing anyway..."
+		Write-Rainbow "WinGet may still have issues. Continuing anyway..."
 	}
 }
 
