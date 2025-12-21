@@ -451,18 +451,27 @@ foreach ($line in $launchLines) {
 }
 Start-Sleep -Seconds 3
 
-# Disable QuickEdit so clicking doesn't pause the script
-$regPath = "HKCU:\Console"
-$quickEditBackup = "$env:APPDATA\PCGR_QuickEdit_Backup.txt"
-
-# Only save if backup doesn't exist (preserves REAL original across interrupted runs)
-if (!(Test-Path $quickEditBackup)) {
-	$currentValue = $null
-	try { $currentValue = (Get-ItemProperty -Path $regPath -Name "QuickEdit" -ErrorAction SilentlyContinue).QuickEdit } catch { }
-	if ($null -eq $currentValue) { $currentValue = 1 }
-	$currentValue | Out-File -FilePath $quickEditBackup -Force
+# Disable QuickEdit for this session only (doesn't modify registry, safe if script is cancelled)
+$QuickEditCode = @"
+using System;
+using System.Runtime.InteropServices;
+public class QuickEdit {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr GetStdHandle(int nStdHandle);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
 }
-Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value 0 -Type DWord -Force
+"@
+try {
+    Add-Type -TypeDefinition $QuickEditCode -Language CSharp -ErrorAction SilentlyContinue
+    $handle = [QuickEdit]::GetStdHandle(-10) # STD_INPUT_HANDLE
+    $mode = 0
+    [void][QuickEdit]::GetConsoleMode($handle, [ref]$mode)
+    $mode = $mode -band (-bnot 0x0040) # Disable ENABLE_QUICK_EDIT_MODE
+    [void][QuickEdit]::SetConsoleMode($handle, $mode)
+} catch { }
 
 try {
 	Start-Process -Verb runAs $FilePath -Wait
@@ -474,23 +483,4 @@ try {
 # Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 
-# Ask about permanently disabling QuickEdit
-if (Test-Path $quickEditBackup) {
-	Write-Host ""
-	Write-Host "Would you like to permanently disable QuickEdit?" -ForegroundColor Cyan
-	Write-Host "(This is the setting that causes scripts to pause when you click on the window)" -ForegroundColor Gray
-	Write-Host "If you don't know what this is, disabling it prevents accidental pauses." -ForegroundColor Gray
-	Write-Host ""
-	$response = Read-Host "Permanently disable QuickEdit? (Y/n)"
-
-	if ($response -eq "" -or $response -match "^[Yy]") {
-		Write-Host "QuickEdit permanently disabled." -ForegroundColor Green
-		Write-Host "You can re-enable it anytime by running RestoreQuickEdit.bat from the repo." -ForegroundColor Gray
-	} else {
-		$savedValue = Get-Content $quickEditBackup -ErrorAction SilentlyContinue
-		if ($savedValue) { Set-ItemProperty -Path $regPath -Name "QuickEdit" -Value ([int]$savedValue) -Type DWord -Force }
-		Write-Host "QuickEdit restored to original setting." -ForegroundColor Green
-	}
-	Remove-Item $quickEditBackup -Force -ErrorAction SilentlyContinue
-}
 Stop-Transcript | Out-Null
