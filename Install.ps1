@@ -137,7 +137,7 @@ Function Test-WingetWorks
 		}
 
 		# Test search with timeout - can hang forever on fresh installs
-		$job = Start-Job -ScriptBlock { winget search Microsoft.VCRedist.2015+.x64 --accept-source-agreements 2>&1 }
+		$job = Start-Job -ScriptBlock { winget search Microsoft.VCRedist.2015+.x64 --source winget --accept-source-agreements 2>&1 }
 		$completed = Wait-Job $job -Timeout 10
 		if ($null -eq $completed) {
 			Stop-Job $job
@@ -254,14 +254,14 @@ Function Update-WingetSources
 	Write-Rainbow "Updating WinGet sources and accepting agreements..."
 	try {
 		winget source update --accept-source-agreements 2>&1 | Out-Null
-		winget search Microsoft.VCRedist --accept-source-agreements 2>&1 | Out-Null
+		winget search Microsoft.VCRedist --source winget --accept-source-agreements 2>&1 | Out-Null
 	} catch { }
 }
 
 Function Test-WingetSearch
 {
 	try {
-		$searchResult = winget search Microsoft.VCRedist.2015+.x64 2>&1 | Out-String
+		$searchResult = winget search Microsoft.VCRedist.2015+.x64 --source winget 2>&1 | Out-String
 		if ($searchResult -match "Microsoft\.VCRedist") {
 			return $true
 		}
@@ -406,6 +406,8 @@ try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { 
 
 $DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
 $FilePath = "$env:TEMP\AIOInstaller.bat"
+$MenuURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/pcgr_menu.ps1'
+$MenuPath = "$env:TEMP\pcgr_menu.ps1"
 
 try {
 	Invoke-WebRequest -Uri $DownloadURL -UseBasicParsing -OutFile $FilePath -ErrorAction Stop
@@ -415,6 +417,12 @@ try {
 	Stop-Transcript | Out-Null
 	pause
 	Return
+}
+
+try {
+	Invoke-WebRequest -Uri $MenuURL -UseBasicParsing -OutFile $MenuPath -ErrorAction Stop
+} catch {
+	Write-Host "WARNING: Failed to download menu script - options menu will not work" -ForegroundColor Yellow
 }
 
 # Fix line endings - GitHub raw serves LF, but batch files need CRLF
