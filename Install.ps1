@@ -127,27 +127,11 @@ Function Test-CommandExists
 
 Function Test-WingetWorks
 {
-	# Check if winget actually works, not just exists
-	# On fresh Win11 installs winget search can hang forever waiting for source init
-	# Use Start-Job with timeout to prevent hangs
+	# Just check winget runs and returns a version. If it does, trust it.
+	# The AIOInstaller has its own retry/source logic that handles actual failures.
 	try {
 		$version = winget --version 2>&1
-		if ($version -notmatch "^v\d+\.\d+") {
-			return $false
-		}
-
-		# Test search with timeout - can hang forever on fresh installs
-		$job = Start-Job -ScriptBlock { winget search Microsoft.VCRedist.2015+.x64 --source winget --accept-source-agreements 2>&1 }
-		$completed = Wait-Job $job -Timeout 10
-		if ($null -eq $completed) {
-			Stop-Job $job
-			Remove-Job $job -Force
-			return $false
-		}
-		$searchResult = Receive-Job $job | Out-String
-		Remove-Job $job -Force
-
-		if ($searchResult -match "Microsoft\.VCRedist") {
+		if ($version -match "^v\d+\.\d+") {
 			return $true
 		}
 		return $false
