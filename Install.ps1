@@ -566,5 +566,15 @@ try {
 # Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 
-Write-Host "Install.ps1 complete. Log: $LogFile"
+Write-Host ""
+Write-Host "Install.ps1 complete." -ForegroundColor Green
+Write-Host "  PS bootstrap log  : $LogFile"
+if (Test-Path $AIOLog) {
+    Write-Host "  AIOInstaller log  : $AIOLog"
+    $done     = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[DONE\]')).Count
+    $fail     = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[FAILED\]')).Count
+    $uptodate = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[ALREADY UP TO DATE\]')).Count
+    $color = if ($fail -gt 0) { 'Red' } else { 'Green' }
+    Write-Host "  Result            : $done installed, $uptodate up-to-date, $fail failed" -ForegroundColor $color
+}
 Stop-Transcript | Out-Null
