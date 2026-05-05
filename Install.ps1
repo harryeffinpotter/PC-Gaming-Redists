@@ -1,6 +1,16 @@
+# -Unattend: skip all interactive prompts and forward /Unattend to the elevated batch.
+# When the calling context is already elevated (e.g. autounattend.xml), the script
+# bypasses the extra UAC re-launch and runs AIOInstaller.bat directly.
+param([switch]$Unattend)
+
 # Log to file silently
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
+
+# Determine whether we are already running elevated (needed for autounattend path)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
 
 # PCGR ASCII Art Logo - rainbow gradient left to right
 $b = [char]0x2588  # full block
@@ -207,8 +217,14 @@ Function Install-AppxWithRetry
 						Write-Rainbow "  - $app"
 					}
 					Write-Host ""
-					$response = Read-Host "Close these apps to continue? (Y/n)"
-					if ($response -eq "" -or $response -match "^[Yy]") {
+					$doClose = $true
+					if (-not $script:Unattend) {
+						$response = Read-Host "Close these apps to continue? (Y/n)"
+						if ($response -notmatch "^[Yy]?" -or $response -match "^[Nn]") {
+							$doClose = $false
+						}
+					}
+					if ($doClose) {
 						Write-Rainbow "Closing blocking apps..."
 						Stop-BlockingPackages -PackageNames $blockingApps
 						# Also kill Edge as a precaution
@@ -399,8 +415,8 @@ try {
 	Write-Host "ERROR: Failed to download installer!" -ForegroundColor Red
 	Write-Host $_.Exception.Message -ForegroundColor Red
 	Stop-Transcript | Out-Null
-	pause
-	Return
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 try {
@@ -419,13 +435,15 @@ try {
 if (!(Test-Path $FilePath)) {
 	Write-Host "ERROR: Download succeeded but file not found!" -ForegroundColor Red
 	Stop-Transcript | Out-Null
-	pause
-	Return
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 # Rainbow text for launch message (bold)
 $bold = "$e[1m"
-if ($wingetFixRan) {
+if ($Unattend) {
+	$launchLines = @("          Launching AIOInstaller (unattended)...")
+} elseif ($wingetFixRan) {
 	$launchLines = @("Launching Installer Window.", "(Be sure to agree to UAC prompt)")
 } else {
 	$launchLines = @("          Launching Installer Window.", "        (Be sure to agree to UAC prompt)")
@@ -441,7 +459,7 @@ foreach ($line in $launchLines) {
     }
     Write-Host "$out$r"
 }
-Start-Sleep -Seconds 3
+if (-not $Unattend) { Start-Sleep -Seconds 3 }
 
 # Disable QuickEdit for this session only (doesn't modify registry, safe if script is cancelled)
 $QuickEditCode = @"
@@ -466,13 +484,25 @@ try {
 } catch { }
 
 try {
-	Start-Process -Verb runAs $FilePath -Wait
+	if ($Unattend -and $isAdmin) {
+		# Already elevated (e.g. called from autounattend.xml or an admin shell).
+		# Run the batch directly in this session - no UAC popup, no new privilege level needed.
+		Start-Process -FilePath $FilePath -ArgumentList '/Unattend' -Wait
+	} elseif ($Unattend) {
+		# Need elevation. Forward /Unattend so the elevated batch skips interactive prompts.
+		Start-Process -FilePath $FilePath -Verb RunAs -ArgumentList '/Unattend' -Wait
+	} else {
+		# Interactive mode - original behaviour.
+		Start-Process -Verb runAs $FilePath -Wait
+	}
 } catch {
 	Write-Host "ERROR launching installer: $_" -ForegroundColor Red
-	pause
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 # Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 
+Write-Host "Install.ps1 complete. Log: $LogFile"
 Stop-Transcript | Out-Null
