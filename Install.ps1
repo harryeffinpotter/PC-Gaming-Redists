@@ -491,12 +491,15 @@ try {
 
 try {
 	if ($Unattend -and $isAdmin) {
-		# Already elevated (e.g. called from autounattend.xml or an admin shell).
-		# Run the batch directly in this session - no UAC popup, no new privilege level needed.
-		Start-Process -FilePath $FilePath -ArgumentList '/Unattend' -Wait
+		# Already elevated (e.g. autounattend.xml or an admin shell).
+		# Use cmd.exe explicitly - Start-Process on a .bat without RunAs still goes through
+		# ShellExecute and may not forward ArgumentList reliably on all Windows builds.
+		Start-Process -FilePath 'cmd.exe' -ArgumentList "/c `"$FilePath`" /Unattend" -Wait
 	} elseif ($Unattend) {
-		# Need elevation. Forward /Unattend so the elevated batch skips interactive prompts.
-		Start-Process -FilePath $FilePath -Verb RunAs -ArgumentList '/Unattend' -Wait
+		# Need elevation. ShellExecute "runas" on a .bat file does NOT reliably forward
+		# ArgumentList - the batch would start elevated but receive empty %1.
+		# Elevate cmd.exe instead and pass the batch + flag as the cmd argument string.
+		Start-Process -FilePath 'cmd.exe' -Verb RunAs -ArgumentList "/c `"$FilePath`" /Unattend" -Wait
 	} else {
 		# Interactive mode - original behaviour.
 		Start-Process -Verb runAs $FilePath -Wait
