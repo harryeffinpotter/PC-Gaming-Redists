@@ -489,17 +489,70 @@ try {
     [void][QuickEdit]::SetConsoleMode($handle, $mode)
 } catch { }
 
+# Log file written by AIOInstaller.bat when /Unattend is active
+$AIOLog = "$env:TEMP\pcgr_aio_$env:COMPUTERNAME.log"
+
+# Stream AIOInstaller log back to this console while the elevated process runs.
+# Used when the batch runs in a separate elevated window (non-admin caller).
+function Watch-AIOLog {
+    param([string]$LogPath, [System.Diagnostics.Process]$Proc)
+
+    $ansi = [regex]'(\x1b\[[0-9;]*[mKJHfABCDsu]|\r)'
+    Write-Host ""
+    Write-Host "  [install log stream - Ctrl+C to detach without stopping install]" -ForegroundColor DarkCyan
+    Write-Host ""
+
+    # Wait up to 60 s for the log file to be created
+    $waited = 0
+    while (-not (Test-Path $LogPath) -and $waited -lt 120 -and -not $Proc.HasExited) {
+        Start-Sleep -Milliseconds 500
+        $waited++
+    }
+
+    if (-not (Test-Path $LogPath)) { $Proc.WaitForExit(); return }
+
+    $stream = $null; $reader = $null
+    try {
+        $stream = [System.IO.File]::Open($LogPath, [System.IO.FileMode]::Open,
+                                          [System.IO.FileAccess]::Read,
+                                          [System.IO.FileShare]::ReadWrite)
+        $reader = New-Object System.IO.StreamReader($stream)
+
+        while (-not $Proc.HasExited) {
+            $chunk = $reader.ReadToEnd()
+            if ($chunk) { Write-Host ($ansi.Replace($chunk, '')) -NoNewline }
+            Start-Sleep -Milliseconds 400
+        }
+        # Final flush after process exits
+        $chunk = $reader.ReadToEnd()
+        if ($chunk) { Write-Host ($ansi.Replace($chunk, '')) -NoNewline }
+    } finally {
+        if ($reader) { $reader.Dispose() }
+        if ($stream) { $stream.Dispose() }
+    }
+
+    $Proc.WaitForExit()
+    Write-Host ""
+}
+
 try {
 	if ($Unattend -and $isAdmin) {
-		# Already elevated (e.g. autounattend.xml or an admin shell).
-		# Use cmd.exe explicitly - Start-Process on a .bat without RunAs still goes through
-		# ShellExecute and may not forward ArgumentList reliably on all Windows builds.
-		Start-Process -FilePath 'cmd.exe' -ArgumentList "/c `"$FilePath`" /Unattend" -Wait
+		# Already elevated (SSH / admin shell / autounattend.xml).
+		# Run inline via call operator - stdout goes straight to this console,
+		# no separate window spawned, works perfectly over SSH/remote sessions.
+		Remove-Item $AIOLog -Force -ErrorAction SilentlyContinue
+		& cmd.exe /c "`"$FilePath`" /Unattend"
 	} elseif ($Unattend) {
 		# Need elevation. ShellExecute "runas" on a .bat file does NOT reliably forward
-		# ArgumentList - the batch would start elevated but receive empty %1.
-		# Elevate cmd.exe instead and pass the batch + flag as the cmd argument string.
-		Start-Process -FilePath 'cmd.exe' -Verb RunAs -ArgumentList "/c `"$FilePath`" /Unattend" -Wait
+		# ArgumentList - elevate cmd.exe instead and stream the log back to this window.
+		Remove-Item $AIOLog -Force -ErrorAction SilentlyContinue
+		$proc = Start-Process -FilePath 'cmd.exe' -Verb RunAs `
+		                      -ArgumentList "/c `"$FilePath`" /Unattend" -PassThru
+		Watch-AIOLog -LogPath $AIOLog -Proc $proc
+		if ($proc.ExitCode -and $proc.ExitCode -ne 0) {
+			Write-Host "AIOInstaller exited with code $($proc.ExitCode)" -ForegroundColor Red
+			exit $proc.ExitCode
+		}
 	} else {
 		# Interactive mode - original behaviour.
 		Start-Process -Verb runAs $FilePath -Wait
