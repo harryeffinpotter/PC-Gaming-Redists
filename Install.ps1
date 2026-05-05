@@ -1,7 +1,13 @@
-# -Unattend: skip all interactive prompts and forward /Unattend to the elevated batch.
-# When the calling context is already elevated (e.g. autounattend.xml), the script
-# bypasses the extra UAC re-launch and runs AIOInstaller.bat directly.
-param([switch]$Unattend)
+# -Unattend : skip all interactive prompts and forward /Unattend to the elevated batch.
+#             When the calling context is already elevated (e.g. autounattend.xml),
+#             the script bypasses the UAC re-launch and runs AIOInstaller.bat directly.
+# -BaseUrl  : raw-content base URL for downloading AIOInstaller.bat and pcgr_menu.ps1.
+#             Override when testing a fork branch so the patched files are used.
+#             Default points to the upstream main branch.
+param(
+    [switch]$Unattend,
+    [string]$BaseUrl = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main'
+)
 
 # Log to file silently
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
@@ -404,9 +410,9 @@ if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 $progressPreference = 'silentlyContinue'
 try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { }
 
-$DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
+$DownloadURL = "$BaseUrl/AIOInstaller.bat"
 $FilePath = "$env:TEMP\AIOInstaller.bat"
-$MenuURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/pcgr_menu.ps1'
+$MenuURL = "$BaseUrl/pcgr_menu.ps1"
 $MenuPath = "$env:TEMP\pcgr_menu.ps1"
 
 try {
