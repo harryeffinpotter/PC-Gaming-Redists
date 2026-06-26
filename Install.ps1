@@ -1,6 +1,22 @@
+# -Unattend : skip all interactive prompts and forward /Unattend to the elevated batch.
+#             When the calling context is already elevated (e.g. autounattend.xml),
+#             the script bypasses the UAC re-launch and runs AIOInstaller.bat directly.
+# -BaseUrl  : raw-content base URL for downloading AIOInstaller.bat and pcgr_menu.ps1.
+#             Override when testing a fork branch so the patched files are used.
+#             Default points to the upstream main branch.
+param(
+    [switch]$Unattend,
+    [string]$BaseUrl = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main'
+)
+
 # Log to file silently
 $LogFile = "$env:TEMP\PC-Gaming-Redists-Install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
+
+# Determine whether we are already running elevated (needed for autounattend path)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
 
 # PCGR ASCII Art Logo - rainbow gradient left to right
 $b = [char]0x2588  # full block
@@ -207,8 +223,14 @@ Function Install-AppxWithRetry
 						Write-Rainbow "  - $app"
 					}
 					Write-Host ""
-					$response = Read-Host "Close these apps to continue? (Y/n)"
-					if ($response -eq "" -or $response -match "^[Yy]") {
+					$doClose = $true
+					if (-not $script:Unattend) {
+						$response = Read-Host "Close these apps to continue? (Y/n)"
+						if ($response -notmatch "^[Yy]?" -or $response -match "^[Nn]") {
+							$doClose = $false
+						}
+					}
+					if ($doClose) {
 						Write-Rainbow "Closing blocking apps..."
 						Stop-BlockingPackages -PackageNames $blockingApps
 						# Also kill Edge as a precaution
@@ -388,9 +410,9 @@ if (!(Test-CommandExists winget) -or !(Test-WingetWorks))
 $progressPreference = 'silentlyContinue'
 try { winget source update --accept-source-agreements 2>&1 | Out-Null } catch { }
 
-$DownloadURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/AIOInstaller.bat'
+$DownloadURL = "$BaseUrl/AIOInstaller.bat"
 $FilePath = "$env:TEMP\AIOInstaller.bat"
-$MenuURL = 'https://raw.githubusercontent.com/harryeffinpotter/PC-Gaming-Redists/main/pcgr_menu.ps1'
+$MenuURL = "$BaseUrl/pcgr_menu.ps1"
 $MenuPath = "$env:TEMP\pcgr_menu.ps1"
 
 try {
@@ -399,8 +421,8 @@ try {
 	Write-Host "ERROR: Failed to download installer!" -ForegroundColor Red
 	Write-Host $_.Exception.Message -ForegroundColor Red
 	Stop-Transcript | Out-Null
-	pause
-	Return
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 try {
@@ -419,13 +441,15 @@ try {
 if (!(Test-Path $FilePath)) {
 	Write-Host "ERROR: Download succeeded but file not found!" -ForegroundColor Red
 	Stop-Transcript | Out-Null
-	pause
-	Return
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 # Rainbow text for launch message (bold)
 $bold = "$e[1m"
-if ($wingetFixRan) {
+if ($Unattend) {
+	$launchLines = @("          Launching AIOInstaller (unattended)...")
+} elseif ($wingetFixRan) {
 	$launchLines = @("Launching Installer Window.", "(Be sure to agree to UAC prompt)")
 } else {
 	$launchLines = @("          Launching Installer Window.", "        (Be sure to agree to UAC prompt)")
@@ -441,7 +465,7 @@ foreach ($line in $launchLines) {
     }
     Write-Host "$out$r"
 }
-Start-Sleep -Seconds 3
+if (-not $Unattend) { Start-Sleep -Seconds 3 }
 
 # Disable QuickEdit for this session only (doesn't modify registry, safe if script is cancelled)
 $QuickEditCode = @"
@@ -465,14 +489,92 @@ try {
     [void][QuickEdit]::SetConsoleMode($handle, $mode)
 } catch { }
 
+# Log file written by AIOInstaller.bat when /Unattend is active
+$AIOLog = "$env:TEMP\pcgr_aio_$env:COMPUTERNAME.log"
+
+# Stream AIOInstaller log back to this console while the elevated process runs.
+# Used when the batch runs in a separate elevated window (non-admin caller).
+function Watch-AIOLog {
+    param([string]$LogPath, [System.Diagnostics.Process]$Proc)
+
+    $ansi = [regex]'(\x1b\[[0-9;]*[mKJHfABCDsu]|\r)'
+    Write-Host ""
+    Write-Host "  [install log stream - Ctrl+C to detach without stopping install]" -ForegroundColor DarkCyan
+    Write-Host ""
+
+    # Wait up to 60 s for the log file to be created
+    $waited = 0
+    while (-not (Test-Path $LogPath) -and $waited -lt 120 -and -not $Proc.HasExited) {
+        Start-Sleep -Milliseconds 500
+        $waited++
+    }
+
+    if (-not (Test-Path $LogPath)) { $Proc.WaitForExit(); return }
+
+    $stream = $null; $reader = $null
+    try {
+        $stream = [System.IO.File]::Open($LogPath, [System.IO.FileMode]::Open,
+                                          [System.IO.FileAccess]::Read,
+                                          [System.IO.FileShare]::ReadWrite)
+        $reader = New-Object System.IO.StreamReader($stream)
+
+        while (-not $Proc.HasExited) {
+            $chunk = $reader.ReadToEnd()
+            if ($chunk) { Write-Host ($ansi.Replace($chunk, '')) -NoNewline }
+            Start-Sleep -Milliseconds 400
+        }
+        # Final flush after process exits
+        $chunk = $reader.ReadToEnd()
+        if ($chunk) { Write-Host ($ansi.Replace($chunk, '')) -NoNewline }
+    } finally {
+        if ($reader) { $reader.Dispose() }
+        if ($stream) { $stream.Dispose() }
+    }
+
+    $Proc.WaitForExit()
+    Write-Host ""
+}
+
 try {
-	Start-Process -Verb runAs $FilePath -Wait
+	if ($Unattend -and $isAdmin) {
+		# Already elevated (SSH / admin shell / autounattend.xml).
+		# Run inline via call operator - stdout goes straight to this console,
+		# no separate window spawned, works perfectly over SSH/remote sessions.
+		Remove-Item $AIOLog -Force -ErrorAction SilentlyContinue
+		& cmd.exe /c "`"$FilePath`" /Unattend"
+	} elseif ($Unattend) {
+		# Need elevation. ShellExecute "runas" on a .bat file does NOT reliably forward
+		# ArgumentList - elevate cmd.exe instead and stream the log back to this window.
+		Remove-Item $AIOLog -Force -ErrorAction SilentlyContinue
+		$proc = Start-Process -FilePath 'cmd.exe' -Verb RunAs `
+		                      -ArgumentList "/c `"$FilePath`" /Unattend" -PassThru
+		Watch-AIOLog -LogPath $AIOLog -Proc $proc
+		if ($proc.ExitCode -and $proc.ExitCode -ne 0) {
+			Write-Host "AIOInstaller exited with code $($proc.ExitCode)" -ForegroundColor Red
+			exit $proc.ExitCode
+		}
+	} else {
+		# Interactive mode - original behaviour.
+		Start-Process -Verb runAs $FilePath -Wait
+	}
 } catch {
 	Write-Host "ERROR launching installer: $_" -ForegroundColor Red
-	pause
+	if (-not $Unattend) { Read-Host "Press Enter to exit" | Out-Null }
+	exit 1
 }
 
 # Cleanup
 try { Remove-Item $FilePath -Force -ErrorAction SilentlyContinue } catch { }
 
+Write-Host ""
+Write-Host "Install.ps1 complete." -ForegroundColor Green
+Write-Host "  PS bootstrap log  : $LogFile"
+if (Test-Path $AIOLog) {
+    Write-Host "  AIOInstaller log  : $AIOLog"
+    $done     = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[DONE\]')).Count
+    $fail     = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[FAILED\]')).Count
+    $uptodate = ([regex]::Matches((Get-Content $AIOLog -Raw -ErrorAction SilentlyContinue), '\[ALREADY UP TO DATE\]')).Count
+    $color = if ($fail -gt 0) { 'Red' } else { 'Green' }
+    Write-Host "  Result            : $done installed, $uptodate up-to-date, $fail failed" -ForegroundColor $color
+}
 Stop-Transcript | Out-Null

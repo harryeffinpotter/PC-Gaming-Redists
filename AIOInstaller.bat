@@ -24,6 +24,12 @@ setlocal & pushd .
 cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 
+REM Parse /Unattend or -Unattend flag (forwarded through UAC elevation)
+set "PCGR_UNATTEND="
+:parseArgs
+if /i "%~1"=="/Unattend" (set "PCGR_UNATTEND=1" & shift & goto :parseArgs)
+if /i "%~1"=="-Unattend" (set "PCGR_UNATTEND=1" & shift & goto :parseArgs)
+
 cls
 title PC Gaming Redists AIO Installer
 color 07
@@ -82,6 +88,14 @@ set /a "OPT_SILENT=1"
 set /a "OPT_FORCE=0"
 set "OPT_LOGFILE=log.txt"
 set /a "MENU_POS=0"
+REM Base directory for log file (overridden to %TEMP%\ when /Unattend)
+set "PCGR_LOGDIR=%~dp0"
+REM Unattended mode: enable logging to %TEMP% and skip all interactive prompts
+if defined PCGR_UNATTEND (
+    set /a "OPT_LOG=1"
+    set "OPT_LOGFILE=pcgr_aio_%COMPUTERNAME%.log"
+    set "PCGR_LOGDIR=%TEMP%\"
+)
 REM OPT_EXTRAS: 0=Enabled, 1=No 7Zip, 2=Disabled
 REM OPT_OUTPUT/OPT_LOG: 0=DISABLED, 1=All Output, 2=All Errors
 REM OPT_FORCE: 0=DISABLED, 1=VC++, 2=.NET, 3=ASP.NET, 4=Extras, 5=ALL
@@ -108,6 +122,7 @@ set "FORCEVAL[3]=Extras"
 set "FORCEVAL[4]=ALL"
 
 :splash
+if defined PCGR_UNATTEND goto :startInstall
 cls
 echo.
 call :rainbowsep
@@ -161,6 +176,7 @@ goto :splash
 :startInstall
 cls
 title PCGR - PC Gaming Redists - Installing...
+set /a "WINGET_RETRY_COUNT=0"
 
 REM Disable QuickEdit unless user enabled "Allow click to pause"
 if !OPT_CLICKPAUSE!==0 (
@@ -168,9 +184,9 @@ if !OPT_CLICKPAUSE!==0 (
 )
 
 REM If log file exists and is over 5MB, clear it
-if exist "%~dp0!OPT_LOGFILE!" (
-    for %%F in ("%~dp0!OPT_LOGFILE!") do (
-        if %%~zF GTR 5242880 del "%~dp0!OPT_LOGFILE!"
+if exist "!PCGR_LOGDIR!!OPT_LOGFILE!" (
+    for %%F in ("!PCGR_LOGDIR!!OPT_LOGFILE!") do (
+        if %%~zF GTR 5242880 del "!PCGR_LOGDIR!!OPT_LOGFILE!"
     )
 )
 
@@ -203,6 +219,16 @@ if %errorlevel% NEQ 0 (
     echo.
     echo ============================================
     echo.
+    if defined PCGR_UNATTEND (
+        set /a "WINGET_RETRY_COUNT+=1"
+        if !WINGET_RETRY_COUNT! GTR 5 (
+            call :rainbow "WinGet still not working after 5 retries - cannot continue."
+            exit /b 1
+        )
+        call :rainbow "WinGet not ready - retrying [!WINGET_RETRY_COUNT!/5] in 10s..."
+        timeout /t 10 /nobreak >nul
+        goto :checkWinget
+    )
     choice /C YN /M "Retry WinGet check"
     if errorlevel 2 goto :wingetFailed
     if errorlevel 1 goto :checkWinget
@@ -213,8 +239,8 @@ goto :wingetOK
 :wingetFailed
 echo.
 echo Cannot continue without working WinGet. Exiting...
-pause
-exit /B
+if not defined PCGR_UNATTEND pause
+exit /B 1
 
 :wingetOK
 cls
@@ -372,14 +398,14 @@ if exist "!WINGET_OUT!" (
 REM Write to log file if Log option enabled
 if exist "!WINGET_OUT!" (
     if !OPT_LOG!==1 (
-        echo === !pkg! [!STATUS!] ===>>"%~dp0!OPT_LOGFILE!"
-        type "!WINGET_OUT!">>"%~dp0!OPT_LOGFILE!"
-        echo.>>"%~dp0!OPT_LOGFILE!"
+        echo === !pkg! [!STATUS!] ===>>!PCGR_LOGDIR!!OPT_LOGFILE!
+        type "!WINGET_OUT!">>!PCGR_LOGDIR!!OPT_LOGFILE!
+        echo.>>!PCGR_LOGDIR!!OPT_LOGFILE!
     )
     if !OPT_LOG!==2 if "!STATUS!"=="FAILED" (
-        echo === FAILED: !pkg! ===>>"%~dp0!OPT_LOGFILE!"
-        type "!WINGET_OUT!">>"%~dp0!OPT_LOGFILE!"
-        echo.>>"%~dp0!OPT_LOGFILE!"
+        echo === FAILED: !pkg! ===>>!PCGR_LOGDIR!!OPT_LOGFILE!
+        type "!WINGET_OUT!">>!PCGR_LOGDIR!!OPT_LOGFILE!
+        echo.>>!PCGR_LOGDIR!!OPT_LOGFILE!
     )
 )
 
@@ -437,8 +463,8 @@ echo.
 REM FAIL_LOG is displayed at end screen, deleted there
 
 REM Show log file location if logging was enabled
-if !OPT_LOG! GEQ 1 if exist "%~dp0!OPT_LOGFILE!" (
-    call :rainbow "Log saved to: %~dp0!OPT_LOGFILE!"
+if !OPT_LOG! GEQ 1 if exist "!PCGR_LOGDIR!!OPT_LOGFILE!" (
+    call :rainbow "Log saved to: !PCGR_LOGDIR!!OPT_LOGFILE!"
     echo.
 )
 
@@ -473,7 +499,7 @@ if exist "%temp%\pcgr_failed_pkgs.txt" (
 )
 del "%temp%\pcgr_failed_pkgs.txt" 2>nul
 
-pause > nul
+if not defined PCGR_UNATTEND pause > nul
 color
 exit
 
